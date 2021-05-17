@@ -1,0 +1,644 @@
+VERSION 5.00
+Object = "{CDE57A40-8B86-11D0-B3C6-00A0C90AEA82}#1.0#0"; "msdatgrd.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "Mscomctl.ocx"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
+Begin VB.Form frm_Rekap_PPh21Tahunan2 
+   BorderStyle     =   4  'Fixed ToolWindow
+   ClientHeight    =   7245
+   ClientLeft      =   225
+   ClientTop       =   735
+   ClientWidth     =   12300
+   BeginProperty Font 
+      Name            =   "Arial"
+      Size            =   8.25
+      Charset         =   0
+      Weight          =   400
+      Underline       =   0   'False
+      Italic          =   0   'False
+      Strikethrough   =   0   'False
+   EndProperty
+   LinkTopic       =   "Form1"
+   MaxButton       =   0   'False
+   MDIChild        =   -1  'True
+   MinButton       =   0   'False
+   ScaleHeight     =   7245
+   ScaleWidth      =   12300
+   ShowInTaskbar   =   0   'False
+   Begin VB.CommandButton cmd_Stop 
+      BackColor       =   &H008080FF&
+      Caption         =   "Stop Load"
+      Height          =   375
+      Left            =   10800
+      Style           =   1  'Graphical
+      TabIndex        =   8
+      Top             =   6600
+      Width           =   1455
+   End
+   Begin VB.Frame Frame3 
+      Height          =   5295
+      Left            =   120
+      TabIndex        =   13
+      Top             =   1560
+      Width           =   12015
+      Begin VB.CommandButton cmd_info 
+         BackColor       =   &H0080FFFF&
+         Caption         =   "?"
+         Height          =   375
+         Left            =   3600
+         Style           =   1  'Graphical
+         TabIndex        =   7
+         Top             =   4800
+         Width           =   375
+      End
+      Begin VB.CommandButton cmd_export 
+         Caption         =   "&Export XLS"
+         Height          =   375
+         Left            =   10920
+         Style           =   1  'Graphical
+         TabIndex        =   9
+         Top             =   4793
+         Width           =   975
+      End
+      Begin VB.TextBox txt_cari 
+         Height          =   375
+         Left            =   1200
+         TabIndex        =   6
+         Text            =   "Text1"
+         ToolTipText     =   "input dan ENTER"
+         Top             =   4793
+         Width           =   2415
+      End
+      Begin MSDataGridLib.DataGrid DataGrid1 
+         Height          =   4455
+         Left            =   120
+         TabIndex        =   5
+         Top             =   240
+         Width           =   11775
+         _ExtentX        =   20770
+         _ExtentY        =   7858
+         _Version        =   393216
+         HeadLines       =   1
+         RowHeight       =   15
+         BeginProperty HeadFont {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+            Name            =   "Arial"
+            Size            =   8.25
+            Charset         =   0
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+            Name            =   "Arial"
+            Size            =   8.25
+            Charset         =   0
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         ColumnCount     =   2
+         BeginProperty Column00 
+            DataField       =   ""
+            Caption         =   ""
+            BeginProperty DataFormat {6D835690-900B-11D0-9484-00A0C91110ED} 
+               Type            =   0
+               Format          =   ""
+               HaveTrueFalseNull=   0
+               FirstDayOfWeek  =   0
+               FirstWeekOfYear =   0
+               LCID            =   1057
+               SubFormatType   =   0
+            EndProperty
+         EndProperty
+         BeginProperty Column01 
+            DataField       =   ""
+            Caption         =   ""
+            BeginProperty DataFormat {6D835690-900B-11D0-9484-00A0C91110ED} 
+               Type            =   0
+               Format          =   ""
+               HaveTrueFalseNull=   0
+               FirstDayOfWeek  =   0
+               FirstWeekOfYear =   0
+               LCID            =   1057
+               SubFormatType   =   0
+            EndProperty
+         EndProperty
+         SplitCount      =   1
+         BeginProperty Split0 
+            BeginProperty Column00 
+            EndProperty
+            BeginProperty Column01 
+            EndProperty
+         EndProperty
+      End
+      Begin VB.Label Label6 
+         AutoSize        =   -1  'True
+         Caption         =   "Cari Data "
+         Height          =   210
+         Left            =   240
+         TabIndex        =   14
+         Top             =   4875
+         Width           =   705
+      End
+   End
+   Begin VB.Frame Frame2 
+      Caption         =   " KPP "
+      BeginProperty Font 
+         Name            =   "Arial"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   700
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Height          =   975
+      Left            =   240
+      TabIndex        =   11
+      Top             =   600
+      Width           =   11895
+      Begin VB.TextBox txt_divisi 
+         Height          =   375
+         Left            =   9000
+         TabIndex        =   3
+         Text            =   "Text1"
+         Top             =   360
+         Width           =   975
+      End
+      Begin VB.TextBox txt_tahun 
+         Height          =   375
+         Left            =   6600
+         TabIndex        =   2
+         Text            =   "Text1"
+         Top             =   360
+         Width           =   975
+      End
+      Begin VB.CommandButton cmd_Load 
+         Caption         =   "4. &Load"
+         Height          =   375
+         Left            =   10560
+         TabIndex        =   4
+         Top             =   360
+         Width           =   1095
+      End
+      Begin VB.ComboBox cb_kpp 
+         Height          =   330
+         Left            =   840
+         TabIndex        =   1
+         Text            =   "x"
+         Top             =   382
+         Width           =   4695
+      End
+      Begin VB.Label Label2 
+         AutoSize        =   -1  'True
+         Caption         =   "3. Filter Divisi "
+         Height          =   210
+         Left            =   7920
+         TabIndex        =   16
+         Top             =   442
+         Width           =   990
+      End
+      Begin VB.Label Label1 
+         AutoSize        =   -1  'True
+         Caption         =   "2. Tahun"
+         Height          =   210
+         Left            =   5880
+         TabIndex        =   15
+         Top             =   442
+         Width           =   630
+      End
+      Begin VB.Label Label5 
+         AutoSize        =   -1  'True
+         Caption         =   "1. KPP"
+         Height          =   210
+         Left            =   240
+         TabIndex        =   12
+         Top             =   442
+         Width           =   465
+      End
+   End
+   Begin MSComctlLib.StatusBar StatusBar1 
+      Align           =   2  'Align Bottom
+      Height          =   255
+      Left            =   0
+      TabIndex        =   10
+      Top             =   6990
+      Width           =   12300
+      _ExtentX        =   21696
+      _ExtentY        =   450
+      _Version        =   393216
+      BeginProperty Panels {8E3867A5-8586-11D1-B16A-00C0F0283628} 
+         NumPanels       =   2
+         BeginProperty Panel1 {8E3867AB-8586-11D1-B16A-00C0F0283628} 
+            AutoSize        =   2
+         EndProperty
+         BeginProperty Panel2 {8E3867AB-8586-11D1-B16A-00C0F0283628} 
+            AutoSize        =   2
+         EndProperty
+      EndProperty
+   End
+   Begin MSComDlg.CommonDialog CD 
+      Left            =   0
+      Top             =   0
+      _ExtentX        =   847
+      _ExtentY        =   847
+      _Version        =   393216
+   End
+   Begin VB.Label lb_caption 
+      Alignment       =   2  'Center
+      BackStyle       =   0  'Transparent
+      Caption         =   "Rekap PPh 21 Tahunan(2)"
+      BeginProperty Font 
+         Name            =   "MS Sans Serif"
+         Size            =   8.25
+         Charset         =   0
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeColor       =   &H00FFFFFF&
+      Height          =   481
+      Left            =   0
+      TabIndex        =   0
+      Top             =   117
+      Width           =   12285
+      WordWrap        =   -1  'True
+   End
+   Begin VB.Shape Shape1 
+      BackColor       =   &H00FF8080&
+      BackStyle       =   1  'Opaque
+      BorderStyle     =   0  'Transparent
+      Height          =   495
+      Left            =   0
+      Top             =   0
+      Width           =   13215
+   End
+End
+Attribute VB_Name = "frm_Rekap_PPh21Tahunan2"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Explicit
+
+Dim rsGrid As ADODB.Recordset
+Dim stopLoad As Boolean
+
+Sub disable_Form()
+    Me.Frame2.Enabled = False
+    Me.Frame3.Enabled = False
+End Sub
+
+Sub Enable_Form()
+    Me.Frame2.Enabled = True
+    Me.Frame3.Enabled = True
+End Sub
+
+Sub load_grid(npwp_kpp As String, Tahun As String)
+    Dim sql As String
+    Dim rs As ADODB.Recordset
+    Dim jRec As Long, c As Long
+        
+    sql = "select Nama, NPWP, NIK, id1 from pph21tahunan2 "
+    
+    If Trim(npwp_kpp) = "" Or Trim(npwp_kpp) = "ALL" Then
+        sql = sql & "where Tahun = '" & Trim(Tahun) & "' "
+    Else
+        sql = sql & "where NPWP_KPP = '" & Trim(npwp_kpp) & "' and Tahun = '" & Trim(Tahun) & "' "
+    End If
+    
+    If Trim(Me.txt_divisi.Text) <> "" Then
+        sql = sql & " and kdCENTER = '" & CekPetik(Me.txt_divisi) & "' "
+    End If
+    
+    If Trim(Me.txt_cari) <> "" Then
+        sql = sql & " and (Nama like '%" & Trim(Me.txt_cari.Text) & "%' or " & _
+                    "NPWP like '%" & Trim(Me.txt_cari.Text) & "%' or " & _
+                    "NIK like '%" & Trim(Me.txt_cari.Text) & "%' or " & _
+                    "Alamat like '%" & Trim(Me.txt_cari.Text) & "%' )"
+    End If
+    sql = sql & " order by Nama, NPWP, NIK"
+    
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error sql", "", sql)
+        Exit Sub
+    End If
+    
+    jRec = RecordCount(rs)
+    If jRec <= 0 Then Exit Sub
+    
+    '-- delete temp
+    sql = "delete from buktipotong"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = "sql error", "", sql)
+        Exit Sub
+    End If
+    '---
+    
+    rs.MoveFirst
+    c = 1
+    Do While rs.EOF = False
+        Call info(1, "Run " & c & "/" & jRec & " -- " & Round((c / jRec) * 100, 2) & "%", Me.StatusBar1)
+        
+        Call fetch_Bukti_Potong(Me.txt_tahun.Text, rs, cnnTemp, Me.StatusBar1)
+        
+        c = c + 1
+        rs.MoveNext
+    Loop
+End Sub
+
+
+Sub load_grid_lama(npwp_kpp As String, Tahun As String)
+  Dim a As Integer, c As Integer, jRec As Long
+  Dim t As String, sql As String, keteranganFilter As String
+  Dim rs As ADODB.Recordset
+  Dim nama As String, npwp As String, NIK As String, Ptkp As String
+  Dim pkp_Setahun As Currency
+  
+  Dim totalBruto As Currency, totalBiayaJabatan As Currency, totalIuranPensiun As Currency
+  Dim totalNetto As Currency, nilaiPtkp As Currency, pph21Setahun As Currency
+  
+  On Error GoTo er1
+  
+  Call dbMySQL_open
+  
+  
+  If Trim(Tahun) = "" Then
+    MsgBox "Tahun tidak valid", vbCritical
+    Exit Sub
+  End If
+  
+    '-- referensi
+    '0: distinct '' as No1, NPWP_KPP, Nama, " & _
+    '3: "NPWP, NIK, Alamat, " & _
+    '6: "Jabatan, P_L, PTKP, " & _
+    '9; "'' as total_Bruto, '' as total_Netto, '' as nilai_PTKP,  " & _
+    '12: "'' as PKP_setahun, '' as PPH21_setahun, '' as pph21_gaji, " & _
+    '15: "'' as pph_Gaji_bonus, '' as totalBiayaJabatan, '' as totalIuranPensiun
+    '18: '' as jmlData
+    '----
+
+  
+    sql = "select distinct '' as No1, NPWP_KPP, Nama, " & _
+            "NPWP, NIK, Alamat, " & _
+            "'' as Jabatan, P_L, PTKP, " & _
+            "'' as total_Bruto, '' as total_Netto, '' as nilai_PTKP,  " & _
+            "'' as PKP_setahun, '' as PPH21_setahun, '' as pph21_gaji, " & _
+            "'' as pph_Gaji_bonus, '' as totalBiayaJabatan, '' as totalIuranPensiun, " & _
+            "'' as jmlData " & _
+            "from pph21tahunan2 "
+    If Trim(npwp_kpp) = "" Or Trim(npwp_kpp) = "ALL" Then
+        sql = sql & "where Tahun = '" & Trim(Tahun) & "' "
+    Else
+        sql = sql & "where NPWP_KPP = '" & Trim(npwp_kpp) & "' and Tahun = '" & Trim(Tahun) & "' "
+    End If
+    
+    If Trim(Me.txt_divisi.Text) <> "" Then
+        sql = sql & " and kdCENTER = '" & CekPetik(Me.txt_divisi) & "' "
+    End If
+    
+    If Trim(Me.txt_cari) <> "" Then
+        sql = sql & " and (Nama like '%" & Trim(Me.txt_cari.Text) & "%' or " & _
+                    "NPWP like '%" & Trim(Me.txt_cari.Text) & "%' or " & _
+                    "NIK like '%" & Trim(Me.txt_cari.Text) & "%' or " & _
+                    "Alamat like '%" & Trim(Me.txt_cari.Text) & "%' )"
+    End If
+    
+    sql = sql & " order by Nama, NPWP, NIK"
+    
+    'sql = InputBox("", "", sql)
+    
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockPessimistic, adUseClient) <> 0 Then
+        sql = InputBox("Error SQL", "", sql)
+        Me.Enable_Form
+    Else
+        If createRS_duplicate(rs, rsGrid) = True Then
+            jRec = RecordCount(rs)
+            If jRec > 0 Then
+                'copykan isi rs ke rsGrid
+                rs.MoveFirst
+                c = 1
+                Do While rs.EOF = False
+                    Call info(1, "Load Grid | Copy | Run " & c & "/" & jRec, Me.StatusBar1)
+                    rsGrid.AddNew
+                    For a = 0 To rs.Fields.Count - 1
+                        rsGrid.Fields(a) = cek_null(rs(a))
+                    Next
+                    
+                    rsGrid.Update
+                    c = c + 1
+                    rs.MoveNext
+                Loop
+                
+                'manipulasi data
+                rsGrid.MoveFirst
+                c = 1
+                stopLoad = False
+                
+                Me.cmd_Stop.Visible = True
+                Do While rsGrid.EOF = False
+                    DoEvents
+                    If stopLoad = True Then Exit Do
+                    Call info(1, "Load HB Data | cek | Run " & c & "/" & jRec & " -- " & _
+                                    Round((c / jRec) * 100, 2) & "%", Me.StatusBar1)
+                    nama = cek_null(rsGrid(2))
+                    npwp = cek_null(rsGrid(3))
+                    NIK = cek_null(rsGrid(4))
+                    Ptkp = cek_null(rsGrid(8))
+                    
+                    rsGrid(0) = c
+                    rsGrid(6) = tbPph21Tahunan2_getJabatan(npwp, NIK, nama, Me.txt_tahun)
+                    
+                    totalNetto = tbPph21Tahunan2_getTotalNetto(totalBruto, totalBiayaJabatan, _
+                                totalIuranPensiun, npwp, NIK, nama, Tahun)
+                    rsGrid(10) = totalNetto
+                
+                    rsGrid(9) = totalBruto
+                    
+                    nilaiPtkp = tbM_Ptkp_getNilai(Ptkp)
+                    rsGrid(11) = nilaiPtkp
+                    
+                    pkp_Setahun = totalNetto - nilaiPtkp
+                    If pkp_Setahun > 0 Then
+                        pkp_Setahun = NearestThousand(pkp_Setahun)
+                        rsGrid(12) = pkp_Setahun
+                    Else
+                        pkp_Setahun = 0
+                        rsGrid(12) = "0"
+                    End If
+                    
+                    pph21Setahun = get_pph21Setahun(pkp_Setahun)
+                    rsGrid(13) = pph21Setahun
+                    rsGrid(14) = Round(get_pph21Setahun(pkp_Setahun) / 12, 0)
+                    
+                    rsGrid(16) = totalBiayaJabatan
+                    rsGrid(17) = totalIuranPensiun
+                    rsGrid(18) = tbPph21Tahunan2_getJmlData(npwp, NIK, nama, Me.txt_tahun, Trim(npwp_kpp))
+                    
+                    rsGrid.Update
+                    c = c + 1
+                    rsGrid.MoveNext
+                Loop
+            End If
+            Set Me.DataGrid1.DataSource = rsGrid
+            Me.Frame3.Caption = " Data | JmlData: " & _
+                                RecordCount(rsGrid)
+                                
+            Call info(1, "JumlahData: " & RecordCount(rsGrid), Me.StatusBar1)
+                                
+        Else
+            Set Me.DataGrid1.DataSource = Nothing
+            Me.Frame3.Caption = "  data | ERROR "
+        End If
+    End If
+      
+  
+  Me.cmd_Stop.Visible = Not True
+  '---- status bar
+  keteranganFilter = "KPP " & Me.cb_kpp & ". Tahun " & Me.txt_tahun
+  Me.StatusBar1.Panels(2) = "Load finish :: " & keteranganFilter
+  Call format_Grid
+  
+  If Trim(Me.txt_divisi.Text) <> "" Then
+    Me.Frame3.Caption = Me.Frame3.Caption & " FILTER DIVISI " & Me.txt_divisi.Text & " -- "
+  End If
+  
+  Me.Enable_Form
+  Exit Sub
+er1:
+  MsgBox Err.Description
+End Sub
+
+Sub format_Grid()
+    
+    Dim jRec As Long
+    Dim c As Integer
+    
+    jRec = RecordCount(rsGrid)
+    If jRec <= 0 Then Exit Sub
+    
+    
+    '-- referensi
+    '0: distinct '' as No1, NPWP_KPP, Nama, " & _
+    '3: "NPWP, NIK, Alamat, " & _
+    '6: "Jabatan, P_L, PTKP, " & _
+    '9; "'' as total_Bruto, '' as total_Netto, '' as nilai_PTKP,  " & _
+    '12: "'' as PKP_setahun, '' as PPH21_setahun, '' as pph21_gaji, " & _
+    '15: "'' as pph_Gaji_bonus " & _
+    '----
+        
+        For c = 0 To rsGrid.Fields.Count - 1
+            'Me.DGrid1.Columns(c).Caption = UCase(rsGrid.Fields(c).Name)
+            
+            'kolom kecil
+            If c = 0 Or c = 7 Or c = 8 Then
+                Me.DataGrid1.Columns(c).Alignment = dbgCenter
+                Me.DataGrid1.Columns(c).Width = 500
+            End If
+    
+            If c = 23 Then
+                Me.DataGrid1.Columns(c).Alignment = dbgCenter
+                Me.DataGrid1.Columns(c).NumberFormat = "dd mmm yy"
+                Me.DataGrid1.Columns(c).Width = 900
+            End If
+    
+            If c = 9 Or c = 10 Or c = 11 Or c = 12 Or c = 13 Or c = 14 Or c = 15 Or c = 16 Or c = 17 Then
+                
+                Me.DataGrid1.Columns(c).Alignment = dbgRight
+                Me.DataGrid1.Columns(c).NumberFormat = "###,###"
+                Me.DataGrid1.Columns(c).Width = 1300
+            End If
+        Next
+
+End Sub
+
+Private Sub cb_kpp_KeyDown(KeyCode As Integer, Shift As Integer)
+     If KeyCode = 113 And Shift = 0 Then Call load_KPP(Me.cb_kpp, True)
+End Sub
+
+Private Sub cmd_export_Click()
+    Dim jRec As Long
+    Dim judul As String
+    
+    judul = "KPP " & Me.cb_kpp & ". Tahun " & Me.txt_tahun
+    
+    
+    Me.disable_Form
+    jRec = RecordCount(rsGrid)
+    If jRec > 0 Then
+        Call create_xls2(rsGrid, judul, "", "")
+    End If
+    Me.Enable_Form
+End Sub
+
+Private Sub cmd_info_Click()
+    Dim t As String
+    
+    t = "BRUTO = Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain" & vbCr & _
+        "Netto = totalBruto -  totalBiaya Jabatan  - totalIuran Pensiun/Potongan Lain" & vbCr & _
+        "BiayaJabatan = if(0.05 * Bruto<500000;0.05 * Bruto<500000;500000)"
+    
+    
+    MsgBox t, vbInformation
+End Sub
+
+Private Sub cmd_Load_Click()
+    Dim t1 As Date, t2 As Date
+    
+    Me.disable_Form
+    t1 = Now
+    Call load_grid(get_kode_combo(Me.cb_kpp, "#"), Me.txt_tahun.Text)
+    t2 = Now
+    
+    MsgBox "Finish in " & CDate(CDate(t2) - CDate(t1)), , vbInformation
+    Me.Enable_Form
+End Sub
+
+Private Sub cmd_Stop_Click()
+    stopLoad = True
+End Sub
+
+Private Sub Form_Load()
+  Dim sql As String
+  Dim Level1 As Integer
+  
+  Call dbMySQL_open
+    
+  Me.txt_tahun.Text = Year(Now) - 1
+  Me.txt_cari.Text = ""
+  Me.txt_divisi.Text = ""
+  Me.cmd_Stop.Visible = False
+    
+'---------------------
+    If dbMySQL_open = True Then
+    Else
+        MsgBox "Open Database Tidak Sukses", vbExclamation
+    End If
+    '---------------------
+    
+  'load combo
+  Call load_KPP(Me.cb_kpp, False, 1)
+  
+  'get level
+  '2 : operator gedung
+  '3 : UKP
+  
+  '---------
+  
+  Level1 = tbPengguna_getLevel1(frMenu1.nmLogin)
+  Call info(2, "Level: " & Level1, Me.StatusBar1)
+  
+End Sub
+
+
+Private Sub Form_Unload(Cancel As Integer)
+    Call dbMySQL_close
+End Sub
+
+Private Sub txt_cari_KeyPress(KeyAscii As Integer)
+    If KeyAscii = 13 Then
+        Call cmd_Load_Click
+    End If
+End Sub

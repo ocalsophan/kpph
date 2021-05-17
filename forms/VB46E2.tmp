@@ -1,0 +1,2698 @@
+Attribute VB_Name = "mod_app"
+Option Explicit
+
+Function format_Npwp_awal(t As String) As String
+    Dim hasil As String
+    
+    '09.321.683.6
+    t = Trim(t)
+    hasil = Left(t, 2) & "." & Mid(t, 3, 3) & "." & Mid(t, 6, 3) & "." & Mid(t, 9, 1)
+    format_Npwp_awal = hasil
+End Function
+
+Sub cek_npwpWP(npwp_wp As String, nama As String, alamat As String)
+    'cek, jika npwp_WP belum ada, insert
+    If isDataAda("mnpwp", "npwp", npwp_wp, cnn, False) = True Then
+        'data sudah ada
+    Else
+        Call tbMNpwp_insert(npwp_wp, nama, alamat, 0)
+    End If
+    
+End Sub
+
+Sub create_ds_mySQL()
+  Dim f
+  Dim file_DSN As String
+  
+  file_DSN = "c:\dbpph.dsn"
+  OpenFile file_DSN, f, 2
+  writefile f, "[ODBC]" & Chr(13) & Chr(10)
+  writefile f, "DRIVER=MySQL ODBC 5.1 Driver" & Chr(13) & Chr(10)
+  writefile f, "UID=trunojoy_rep" & Chr(13) & Chr(10)
+  writefile f, "PWD=urep2017" & Chr(13) & Chr(10)
+  writefile f, "PORT=3306" & Chr(13) & Chr(10)
+  writefile f, "DATABASE=trunojoy_dbpph" & Chr(13) & Chr(10)
+  writefile f, "SERVER=trunojoyopython.com" & Chr(13) & Chr(10)
+  closefile f
+End Sub
+
+Function lokasi_server_load(namaFile As String) As String
+    'cek, file adakah ? jika tidak ada, create default value, terus di load
+    'file \data\set_db.txt
+    
+    Dim f
+    Dim namaServer As String
+    
+    On Error GoTo er1
+    If is_file_ada(namaFile) = False Then
+        'create file
+        Call OpenFile(namaFile, f, 2)
+        Call writefile(f, "trunojoyopython.com")
+        Call closefile(f)
+    End If
+    
+    'load file
+    Call OpenFile(namaFile, f, 1)
+    namaServer = f.readline
+    Call closefile(f)
+    lokasi_server_load = namaServer
+    Exit Function
+er1:
+    MsgBox Err.Description, vbCritical
+    lokasi_server_load = ""
+End Function
+
+Sub lokasi_server_save(namaFile As String, namaServer As String)
+    Dim f
+    
+    'create file
+    Call OpenFile(namaFile, f, 2)
+    Call writefile(f, namaServer)
+    Call closefile(f)
+    Call pesan2("Lokasi Server di Update", 1, vbYellow)
+End Sub
+
+Function cek_Koneksi() As Boolean
+    On Error GoTo err_DoWebRequest
+    Dim strurl As String, DoWebRequest As String
+    strurl = "http://www.google.com"
+    
+    Dim objXML As Object
+    Set objXML = CreateObject("Microsoft.XMLHTTP")
+    objXML.Open "GET", strurl, False
+    objXML.Send
+    If (objXML.Status = 404) Then
+        DoWebRequest = "404 Error"
+        DoWebRequest = objXML.responseText
+        cek_Koneksi = False
+    Else
+        cek_Koneksi = True
+    End If
+    Set objXML = Nothing
+    Exit Function
+err_DoWebRequest:
+    cek_Koneksi = False
+End Function
+
+Sub load_Divisi(ByRef cb As ComboBox, Optional load_filter As Boolean = False, _
+                 Optional wALL As Integer = 0, Optional setIndex As Boolean = False)
+     
+     Dim pesan As String, sql  As String
+     Dim Label1 As String
+     
+     Label1 = "Divisi "
+     pesan = ""
+     If load_filter = True Then
+          pesan = InputBox("Filter " & Label1, "Filter " & Label1, "")
+     End If
+     
+     If Trim(pesan) = "" Then
+          sql = "select distinct concat(kodedivisi,' - ',nama_divisi) from mdivisi order by kodedivisi limit 20"
+     Else
+          sql = "select distinct concat(kodedivisi,' - ',nama_divisi) from mdivisi " & _
+                "where ucase(kodeDivisi) like '%" & UCase(Trim(pesan)) & _
+                    "%' or ucase(namaDivisi) like '%" & UCase(Trim(pesan)) & "%' order by kodedivisi limit 20 "
+     End If
+     Call Load_combo(cb, sql, cnn, setIndex, , wALL)
+End Sub
+
+Sub load_Proyek(kd_Divisi As String, jenisPajak As String, ByRef cb As ComboBox, Optional load_filter As Boolean = False, _
+                 Optional wALL As Integer = 1, Optional setIndex As Boolean = False)
+     
+     Dim pesan As String, sql  As String
+     Dim Label1 As String
+     
+     Label1 = "Proyek "
+     pesan = ""
+     If load_filter = True Then
+          pesan = InputBox("Filter " & Label1, "Filter " & Label1, "")
+     End If
+     
+     If Trim(pesan) = "" Then
+          sql = "select distinct kd_proyek from " & jenisPajak & " where kode_divisi = '" & Trim(kd_Divisi) & "' order by kd_proyek"
+     Else
+          sql = "select distinct kd_proyek from " & jenisPajak & _
+                "where kode_divisi = '" & Trim(kd_Divisi) & "' and ucase(kd_proyek) like '%" & UCase(Trim(pesan)) & "%' order by kd_proyek"
+     End If
+     Call Load_combo(cb, sql, cnn, setIndex, , wALL)
+End Sub
+
+Sub load_KPP(ByRef cb As ComboBox, Optional load_filter As Boolean = False, _
+                 Optional wALL As Integer = 0, Optional setIndex As Boolean = True)
+     
+     Dim pesan As String, sql  As String
+     Dim Label1 As String
+     
+     Label1 = "KPP "
+     pesan = ""
+     If load_filter = True Then
+          pesan = InputBox("Filter " & Label1, "Filter " & Label1, "")
+     End If
+     
+     If Trim(pesan) = "" Then
+          sql = "select distinct concat(npwp,' # ', kpp_administrasi) from mkpp order by kpp_administrasi limit 20"
+     Else
+          sql = "select distinct concat(npwp,' # ', kpp_administrasi) from mkpp " & _
+                "where ucase(npwp) like '%" & UCase(Trim(pesan)) & _
+                    "%' or ucase(kpp_administrasi) like '%" & UCase(Trim(pesan)) & "%' order by kpp_administrasi limit 20 "
+     End If
+     
+     
+     Call Load_combo(cb, sql, cnn, setIndex, , wALL)
+End Sub
+
+Sub load_Tahun_pph15(ByRef cb As ComboBox)
+     
+    Dim sql  As String
+     
+    sql = "select distinct tahun_pajak from pph15"
+    Call Load_combo(cb, sql, cnn, True, , 1)
+End Sub
+
+Sub load_Masa_pph15(ByRef cb As ComboBox)
+     
+    Dim sql  As String
+     
+    sql = "select distinct masa_pajak from pph15"
+    Call Load_combo(cb, sql, cnn, True, , 1)
+End Sub
+
+Sub load_Tahun2(ByRef cb As ComboBox, nmTabel1 As String)
+     
+    Dim sql  As String
+     
+    sql = "select distinct Tahun_Pajak from " & nmTabel1
+    Call Load_combo(cb, sql, cnn, True, , 1)
+End Sub
+
+Sub load_Masa2(ByRef cb As ComboBox, nmTabel1 As String)
+     
+    Dim sql  As String
+     
+    sql = "select distinct Masa_Pajak from " & nmTabel1
+    Call Load_combo(cb, sql, cnn, True, , 1)
+End Sub
+
+Sub load_Pembetulan2(ByRef cb As ComboBox, nmTabel1 As String)
+     
+    Dim sql  As String
+     
+    sql = "select distinct Pembetulan from " & nmTabel1
+    Call Load_combo(cb, sql, cnn, True, , 1)
+End Sub
+
+
+
+Sub load_jenisPPh(ByRef cb As ComboBox)
+     
+     Dim Label1 As String
+     
+     cb.Clear
+     cb.AddItem "1. PPh ps15"
+     cb.AddItem "2. PPh ps23"
+     cb.AddItem "3. PPh ps21 Tidak Final"
+     cb.AddItem "4. PPh ps21 Bulanan"
+     cb.AddItem "5. PPh ps21 Tahunan"
+     cb.AddItem "6. PPh ps22"
+     cb.AddItem "7. PPh ps26"
+     cb.AddItem "8. PPh ps4 ayat2 Konstruksi"
+     cb.AddItem "9. PPh ps4 ayat2 Sewa"
+     
+     'cb.ListIndex = 0
+End Sub
+
+Sub load_jenisPPhSsp(ByRef cb As ComboBox)
+     
+     Dim Label1 As String
+     
+     cb.Clear
+     cb.AddItem "ALL"
+     cb.AddItem "PPh Pasal 21"
+     cb.AddItem "PPh Pasal 22"
+     cb.AddItem "PPh Pasal 23"
+     cb.AddItem "PPh Final"
+     cb.AddItem "PPh Pasal 15"
+     
+     'cb.ListIndex = 0
+End Sub
+
+Function tbM_Ptkp_getNilai(Ptkp As String) As Currency
+    Dim sql As String, t As String
+    
+    sql = "select nilai from mptkp where key1 = '" & Trim(Ptkp) & "'"
+    t = cari_data1(cnn, sql, True)
+    tbM_Ptkp_getNilai = CCur(t)
+End Function
+
+Function get_pph21Setahun(pkp_Setahun As Currency) As Currency
+    '=IF(P5<50000001;ROUND((5/100*P5);0);IF(P5<250000001;ROUND(2500000+(15/100*(P5-50000000));0);
+    'IF(P5<500000001;ROUND(32500000+(25/100*(P5-250000000));0);
+    'IF(P5>500000000;ROUND(95000000+(30/100*(P5-500000000));0);0))))
+    
+    Dim t As Currency
+    
+    If pkp_Setahun < 50000001 Then
+        t = Round((5 / 100 * pkp_Setahun), 0)
+    ElseIf pkp_Setahun < 250000001 Then
+        t = Round(2500000 + (15 / 100 * (pkp_Setahun - 50000000)), 0)
+    ElseIf pkp_Setahun < 500000001 Then
+        t = Round(32500000 + (25 / 100 * (pkp_Setahun - 250000000)), 0)
+    ElseIf pkp_Setahun > 500000000 Then
+        t = Round(95000000 + (30 / 100 * (pkp_Setahun - 500000000)), 0)
+    End If
+    get_pph21Setahun = t
+End Function
+
+Function tbM_Ptkp_isDataAda(key1 As String) As Boolean
+    If isDataAda("mptkp", "key1", key1, cnn) = True Then
+        tbM_Ptkp_isDataAda = True
+    Else
+        tbM_Ptkp_isDataAda = False
+    End If
+End Function
+
+Function tbM_Ptkp_insert(key1 As String, nilai As Currency) As Boolean
+    Dim sql As String
+    
+    If isDataAda("mptkp", "key1", key1, cnn) = True Then
+        Call pesan2("Kode " & key1 & " sudah ada", , vbYellow)
+        tbM_Ptkp_insert = False
+        Exit Function
+    Else
+        sql = "insert into mptkp (key1, nilai) values ('" & key1 & "','" & nilai & "')"
+        If ExecSQL1(cnn, sql) <> 0 Then
+            MsgBox "error run " & sql, vbInformation
+            tbM_Ptkp_insert = False
+        Else
+            tbM_Ptkp_insert = True
+        End If
+    End If
+End Function
+
+Function tbM_Ptkp_Delete(key1 As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from mptkp where key1 = '" & cleanStr(key1) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbM_Ptkp_Delete = False
+    Else
+        tbM_Ptkp_Delete = True
+    End If
+End Function
+
+Function tbMKpp_insert(npwp As String, nama As String, alamat As String, tgl_lahir As Date, klu As String, _
+                        nip_nama_ar As String, status_update As String, tgl_update As Date, _
+                        kpp_administrasi As String) As Boolean
+    Dim sql As String
+    
+    If isDataAda("mkpp", "npwp", npwp, cnn) = True Then
+        Call pesan2("Kode " & npwp & " sudah ada", , vbYellow)
+        tbMKpp_insert = False
+        Exit Function
+    Else
+        If Trim(kpp_administrasi) = "" Then
+            Call pesan2("Data tidak lengkap", , vbYellow)
+            tbMKpp_insert = False
+            Exit Function
+        End If
+        
+        npwp = Replace(npwp, ".", "")
+        npwp = Replace(npwp, "-", "")
+        
+        sql = "insert into mkpp (npwp, nama, alamat, " & _
+                "tgl_lahir, klu, nip_nama_ar, " & _
+                "status_update, tgl_update, kpp_administrasi) values ('" & _
+                cleanStr(npwp) & "','" & cleanStr(nama) & "','" & cleanStr(alamat) & "','" & _
+                set_tgl_perv(tgl_lahir) & "','" & cleanStr(klu) & "','" & cleanStr(nip_nama_ar) & "','" & _
+                cleanStr(status_update) & "','" & set_tgl_perv(tgl_update) & "','" & cleanStr(kpp_administrasi) & "')"
+        If ExecSQL1(cnn, sql) <> 0 Then
+            MsgBox "error run " & sql, vbInformation
+            tbMKpp_insert = False
+        Else
+            tbMKpp_insert = True
+        End If
+    End If
+End Function
+
+Function tbMKpp_Update(npwp As String, nama As String, alamat As String, tgl_lahir As Date, klu As String, _
+                        nip_nama_ar As String, status_update As String, tgl_update As Date, _
+                        kpp_administrasi As String) As Boolean
+    Dim sql As String
+    
+    sql = "update mkpp set nama = '" & cleanStr(nama, True) & "', alamat = '" & _
+            cleanStr(alamat, True) & "', tgl_lahir = '" & set_tgl_perv(tgl_lahir) & "', klu = '" & _
+            cleanStr(klu, True) & "', nip_nama_ar = '" & cleanStr(nip_nama_ar, True) & "', status_update = '" & _
+            cleanStr(status_update, True) & "', tgl_update = '" & _
+            set_tgl_perv(tgl_update) & "', kpp_administrasi = '" & cleanStr(kpp_administrasi) & "' where npwp = '" & _
+            cleanStr(npwp, True) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbMKpp_Update = False
+    Else
+        tbMKpp_Update = True
+    End If
+End Function
+
+Function tbMKpp_isNpwpKPP_Valid(npwp_kpp As String) As Boolean
+    Dim sql As String, t As String
+    
+    npwp_kpp = Replace(npwp_kpp, ".", "")
+    npwp_kpp = Replace(npwp_kpp, "-", "")
+    
+    sql = "select count(*) from mkpp where npwp = '" & cleanStr(npwp_kpp) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbMKpp_isNpwpKPP_Valid = True
+    Else
+        tbMKpp_isNpwpKPP_Valid = False
+    End If
+End Function
+
+Function tbMKpp_Delete(npwp As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from mkpp where npwp = '" & cleanStr(npwp) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbMKpp_Delete = False
+    Else
+        tbMKpp_Delete = True
+    End If
+End Function
+
+Function tbMKpp_get(kolom As String, npwp_kpp) As String
+    Dim sql As String, t As String
+    
+    sql = "select " & kolom & " from mkpp where npwp = '" & Trim(npwp_kpp) & "'"
+    t = cari_data1(cnn, sql)
+    tbMKpp_get = t
+End Function
+
+
+Function dbMySQL_close()
+    'close connecttion
+    On Error Resume Next
+    cnn.Close
+    Set cnn = Nothing
+End Function
+
+Function dbMySQL_open() As Boolean
+    'open
+    Dim cnnString As String, namaServer As String
+    
+    DoEvents
+    Set cnn = Nothing
+    Set cnn = New ADODB.connection
+    
+    namaServer = lokasi_server_load(App.Path & "\data\set_db.txt")
+    
+    If InStr(1, namaServer, ".com", vbTextCompare) > 0 Then
+        'non dsn
+        cnnString = "Driver={MySQL ODBC 3.51 Driver};Server=" & namaServer & _
+                ";Database=trunojoy_dbpph; User=trunojoy_user1;Password=user2017;Option=3;"
+    ElseIf LCase(namaServer) = "localhost" Then
+        'non dsn
+        cnnString = "Driver={MySQL ODBC 3.51 Driver};Server=" & namaServer & _
+                ";Database=trunojoy_dbpph; User=trunojoy_user1;Password=user2017;Option=3;"
+    ElseIf IsNumeric(Replace(namaServer, ".", "")) = True Then
+        'non dsn
+        cnnString = "Driver={MySQL ODBC 3.51 Driver};Server=" & namaServer & _
+                ";Database=trunojoy_dbpph; User=trunojoy_user1;Password=user2017;Option=3;"
+    Else
+        cnnString = "DSN=" & namaServer
+    End If
+    
+    'uname: trunojoy_user1
+    'pass: user2017
+    'database : trunojoy_dbpph
+    
+    DoEvents
+    cnn.ConnectionString = cnnString
+    On Error GoTo er1
+    cnn.Open
+    DoEvents
+    dbMySQL_open = True
+    Exit Function
+er1:
+    MsgBox Err.Description & vbCr & "connection error", vbCritical
+    dbMySQL_open = False
+End Function
+
+
+Function tbMDivisi_insert(kodeDivisi As String, nama_divisi As String, ket As String)
+    Dim sql As String
+    
+    If isDataAda("mdivisi", "kodedivisi", kodeDivisi, cnn) = True Then
+        Call pesan2("Kode " & kodeDivisi & " sudah ada", , vbYellow)
+        tbMDivisi_insert = False
+        Exit Function
+    Else
+        If Trim(nama_divisi) = "" Then
+            Call pesan2("Data tidak lengkap", , vbYellow)
+            tbMDivisi_insert = False
+            Exit Function
+        End If
+        
+        sql = "insert into mdivisi (kodedivisi, nama_divisi, ket) values ('" & _
+            cleanStr(kodeDivisi) & "','" & cleanStr(nama_divisi, True) & "','" & cleanStr(ket, True) & "')"
+        If ExecSQL1(cnn, sql) <> 0 Then
+            MsgBox "error run " & sql, vbInformation
+            tbMDivisi_insert = False
+        Else
+            tbMDivisi_insert = True
+        End If
+    End If
+End Function
+
+Function tbMDivisi_Update(kodeDivisi As String, nama_divisi As String, ket As String) As Boolean
+    Dim sql As String
+    
+    sql = "update mdivisi set nama_divisi = '" & cleanStr(nama_divisi, True) & _
+            "', ket = '" & cleanStr(ket, True) & "' where kodedivisi = '" & cleanStr(kodeDivisi) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbMDivisi_Update = False
+    Else
+        tbMDivisi_Update = True
+    End If
+End Function
+
+Function tbMDivisi_Delete(kodeDivisi As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from mdivisi where kodedivisi = '" & cleanStr(kodeDivisi) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbMDivisi_Delete = False
+    Else
+        tbMDivisi_Delete = True
+    End If
+End Function
+
+Function tbPengguna_insert(nuser As String, pwd1 As String, Level1 As String, kodeDivisi As String) As Boolean
+    Dim sql As String
+    
+    If isDataAda("pengguna", "nuser", nuser, cnn) = True Then
+        Call pesan2("Nama user " & nuser & " sudah ada", , vbYellow)
+        tbPengguna_insert = False
+        Exit Function
+    Else
+        If Trim(Level1) = "" Or Trim(kodeDivisi) = "" Then
+            Call pesan2("Data tidak lengkap", , vbYellow)
+            tbPengguna_insert = False
+            Exit Function
+        End If
+    
+    
+        sql = "insert into pengguna (nuser, pwd1, level1, kodedivisi) values ('" & _
+                cleanStr(nuser) & "','" & EncryptString(cleanStr(pwd1), "dvak2017") & "','" & Trim(Level1) & "','" & _
+                Trim(kodeDivisi) & "')"
+        If ExecSQL1(cnn, sql) <> 0 Then
+            MsgBox "error run " & sql, vbInformation
+            tbPengguna_insert = False
+        Else
+            tbPengguna_insert = True
+        End If
+    End If
+End Function
+
+Function tbPengguna_Update(nuser As String, pwd1 As String) As Boolean
+    Dim sql As String
+    
+    sql = "update pengguna set pwd1 = '" & EncryptString(cleanStr(pwd1), "dvak2017") & _
+            "' where nuser = '" & cleanStr(nuser) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbPengguna_Update = False
+    Else
+        tbPengguna_Update = True
+    End If
+End Function
+
+Function tbPengguna_Delete(nuser As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from pengguna where nuser = '" & cleanStr(nuser) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbPengguna_Delete = False
+    Else
+        tbPengguna_Delete = True
+    End If
+End Function
+
+Function tbPengguna_getLevel1(nuser As String) As Integer
+    Dim sql As String, t As String
+    
+    On Error GoTo er1
+        sql = "select level1 from pengguna where nuser = '" & cleanStr(nuser) & "'"
+        t = cari_data1(cnn, sql, True)
+        tbPengguna_getLevel1 = CInt(t)
+        Exit Function
+er1:
+        MsgBox Err.Description
+End Function
+
+Function tbPengguna_getDivisi(nuser As String) As String
+    Dim sql As String, t As String
+    
+        sql = "select kodedivisi from pengguna where nuser = '" & cleanStr(nuser) & "'"
+        t = cari_data1(cnn, sql)
+        tbPengguna_getDivisi = t
+End Function
+
+Function tbPengguna_isValid_Password(nuser As String, pwd1 As String) As Integer
+    'return level
+    
+    Dim sql As String
+    Dim rs As ADODB.Recordset
+    Dim pwdDb As String, Level1 As String
+        
+    sql = "select pwd1, level1 from pengguna where nuser = '" & cleanStr(nuser) & "'"
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        'can not open rs
+        tbPengguna_isValid_Password = -2
+        Exit Function
+    End If
+    
+    If RecordCount(rs) > 0 Then
+        pwdDb = cek_null(rs(0))
+        Level1 = cek_null(rs(1))
+        If EncryptString(cleanStr(pwd1), "dvak2017") = pwdDb Then
+            tbPengguna_isValid_Password = cek_Int(Level1)
+        Else
+            tbPengguna_isValid_Password = 0
+        End If
+    Else
+        'no records
+        tbPengguna_isValid_Password = -3
+        Exit Function
+    End If
+    
+    
+End Function
+
+Function tbPph15_isDataAda(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "select count(*) from pph15 where npwp_kpp = '" & Trim(npwp_kpp) & "' and nomor_bukti_potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and pembetulan = '" & Trim(Pembetulan) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbPph15_isDataAda = True
+    Else
+        tbPph15_isDataAda = False
+    End If
+End Function
+
+Function tbPph15_insert(Kode_Form As String, Masa_Pajak As String, Tahun_Pajak As String, Pembetulan As String, _
+                        npwp_wp As String, Nama_WP As String, Alamat_WP As String, Nomor_Bukti_Potong As String, _
+                        Tanggal_Bukti_Potong As Date, negara_sumber_penghasilan As String, _
+                        kode_option_penghasilan As String, Jumlah_Bruto As Currency, Tarif As String, _
+                        pph_dipotong As Currency, invoice_ket As String, kode_divisi As String, npwp_kpp As String, _
+                        kd_proyek As String, nott As String, nofaktur As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPph15_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan) = True Then
+        'data sudah ada, di hapus dulu
+        If tbPph15_delete(npwp_kpp, Nomor_Bukti_Potong, Pembetulan) = True Then
+            return1 = 2
+        Else
+            tbPph15_insert = -1
+            Exit Function
+        End If
+    End If
+    
+    Nama_WP = cleanStr(Nama_WP)
+    sql = "insert into pph15 (npwp_kpp, kode_form, masa_pajak, tahun_pajak, " & _
+            "pembetulan, npwp_wp, nama_wp, " & _
+            "alamat_wp, nomor_bukti_potong, tanggal_bukti_potong, " & _
+            "negara_sumber_penghasilan, kode_option_penghasilan, jumlah_bruto, " & _
+            "tarif, pph_dipotong, invoice_ket, " & _
+            "kode_divisi, tgl_import, " & _
+            "kd_proyek, nott, nofaktur) values ('" & Trim(npwp_kpp) & "', '" & _
+            Trim(Kode_Form) & "','" & Trim(Masa_Pajak) & "','" & Trim(Tahun_Pajak) & "','" & _
+            Trim(Pembetulan) & "','" & Trim(npwp_wp) & "','" & Trim(Nama_WP) & "','" & _
+            Trim(Alamat_WP) & "','" & Trim(Nomor_Bukti_Potong) & "','" & set_tgl_perv(Tanggal_Bukti_Potong) & "','" & _
+            Trim(negara_sumber_penghasilan) & "','" & Trim(kode_option_penghasilan) & "','" & Trim(Jumlah_Bruto) & "','" & _
+            Trim(Tarif) & "','" & Trim(pph_dipotong) & "','" & Trim(invoice_ket) & "','" & _
+            Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & _
+            Trim(kd_proyek) & "','" & Trim(nott) & "','" & Trim(nofaktur) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph15_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph15_insert = 2
+        Else
+            tbPph15_insert = 1
+        End If
+    End If
+End Function
+
+
+Function tbMNpwp_insert(npwp As String, nama As String, alamat As String, skaryawan As Integer) As Boolean
+    Dim sql As String
+    
+    If isDataAda("mnpwp", "npwp", npwp, cnn) = True Then
+        Call pesan2("NPWP " & npwp & " sudah ada", , vbYellow)
+        tbMNpwp_insert = False
+        Exit Function
+    Else
+        If Trim(nama) = "" Then
+            Call pesan2("Data tidak lengkap", , vbYellow)
+            tbMNpwp_insert = False
+            Exit Function
+        End If
+    
+    
+        sql = "insert into mnpwp (npwp, nama, alamat, skaryawan) values ('" & _
+                cleanStr(npwp) & "','" & cleanStr(nama) & "','" & cleanStr(alamat) & "','" & _
+                Trim(skaryawan) & "')"
+        If ExecSQL1(cnn, sql) <> 0 Then
+            MsgBox "error run " & sql, vbInformation
+            tbMNpwp_insert = False
+        Else
+            tbMNpwp_insert = True
+        End If
+    End If
+End Function
+
+Function tbMNpwp_Delete(npwp As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from mnpwp where npwp = '" & cleanStr(npwp) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbMNpwp_Delete = False
+    Else
+        tbMNpwp_Delete = True
+    End If
+End Function
+
+Function tbMNpwp_setStatus(npwp As String) As Boolean
+    Dim sql As String, t As String
+    
+    'cek status lama
+    sql = "select skaryawan from mnpwp where npwp = '" & cleanStr(npwp) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) = 0 Then
+        t = "1"
+    Else
+        t = "0"
+    End If
+    
+    sql = "update mnpwp set skaryawan = '" & t & "' where npwp = '" & cleanStr(npwp) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        MsgBox "error run " & sql, vbInformation
+        tbMNpwp_setStatus = False
+    Else
+        tbMNpwp_setStatus = True
+    End If
+End Function
+
+Function tbPph15_delete(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from pph15 where npwp_kpp = '" & Trim(npwp_kpp) & "' and nomor_bukti_potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and pembetulan = '" & Trim(Pembetulan) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPph15_delete = False
+    Else
+        tbPph15_delete = True
+    End If
+End Function
+
+
+
+Function tbPphX_deleteById(id1 As String, namaPPh As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from " & namaPPh & " where id1 = '" & Trim(id1) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPphX_deleteById = False
+    Else
+        tbPphX_deleteById = True
+    End If
+End Function
+
+Function tbPphX_deleteByKPP(namaPPh As String, npwp_kpp As String, Tahun As String, masa As String, divisi As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from " & namaPPh & " where Tahun_Pajak = '" & Tahun & "' and Masa_Pajak = '" & masa & _
+            "' and kode_divisi = '" & divisi & "' and NPWP_KPP = '" & npwp_kpp & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPphX_deleteByKPP = False
+    Else
+        tbPphX_deleteByKPP = True
+    End If
+End Function
+
+Function tbPphX_editById(id1 As String, namaPPh As String, nott As String, nofaktur As String, kdPROYEK As String) As Boolean
+    Dim sql As String
+    
+    If Trim(namaPPh) = "pph15" Or Trim(namaPPh) = "pph22" Or Trim(namaPPh) = "pph23" Or _
+        Trim(namaPPh) = "pph26" Or Trim(namaPPh) = "pph42_konstruksi" Or Trim(namaPPh) = "pph42_sewa" Then
+    
+            sql = "update " & namaPPh & " set kd_proyek = '" & Trim(kdPROYEK) & "', nott = '" & _
+                    Trim(nott) & "', nofaktur = '" & Trim(nofaktur) & "' where id1 = '" & Trim(id1) & "'"
+            If ExecSQL1(cnn, sql) <> 0 Then
+                tbPphX_editById = False
+            Else
+                tbPphX_editById = True
+            End If
+    End If
+End Function
+
+Function tbPph23_isDataAda(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "select count(*) from pph23 where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Nomor_Bukti_Potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbPph23_isDataAda = True
+    Else
+        tbPph23_isDataAda = False
+    End If
+End Function
+
+Function tbPph23_delete(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from pph23 where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Nomor_Bukti_Potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPph23_delete = False
+    Else
+        tbPph23_delete = True
+    End If
+End Function
+
+
+Function tbPph23_insert(npwp_kpp As String, Kode_Form As String, Masa_Pajak As String, Tahun_Pajak As String, _
+                    Pembetulan As String, npwp_wp As String, Nama_WP As String, Alamat_WP As String, _
+                    Nomor_Bukti_Potong As String, Tanggal_Bukti_Potong As Date, _
+                    Nilai_Bruto_1 As Currency, Tarif_1 As String, PPh_Yang_Dipotong__1 As Currency, _
+                    Nilai_Bruto_2 As Currency, Tarif_2 As String, PPh_Yang_Dipotong__2 As Currency, _
+                    Nilai_Bruto_3 As Currency, Tarif_3 As String, PPh_Yang_Dipotong__3 As Currency, _
+                    Nilai_Bruto_4 As Currency, Tarif_4 As String, PPh_Yang_Dipotong__4 As Currency, _
+                    Nilai_Bruto_5 As Currency, Tarif_5 As String, PPh_Yang_Dipotong__5 As Currency, _
+                    Nilai_Bruto_6a As Currency, Tarif_6a As String, PPh_Yang_Dipotong__6a As Currency, _
+                    Nilai_Bruto_6b As Currency, Tarif_6b As String, PPh_Yang_Dipotong__6b As Currency, _
+                    Nilai_Bruto_6c As Currency, Tarif_6c As String, PPh_Yang_Dipotong__6c As Currency, _
+                    Kode_Jasa_6d1 As String, Nilai_Bruto_6d1 As Currency, Tarif_6d1 As String, PPh_Yang_Dipotong__6d1 As Currency, _
+                    Jumlah_Nilai_Bruto_ As Currency, Jumlah_PPh_Yang_Dipotong As Currency, kode_divisi As String, _
+                    kd_proyek As String, nott As String, nofaktur As String) As Integer
+    
+    
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPph23_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan) = True Then
+        'data sudah ada, di hapus dulu
+        If tbPph23_delete(npwp_kpp, Nomor_Bukti_Potong, Pembetulan) = True Then
+            return1 = 2
+        Else
+            tbPph23_insert = -1
+            Exit Function
+        End If
+    End If
+    
+    
+    'yang di skip
+    'Nilai_Bruto_9 s/d Nilai_Bruto_13
+    'Kode_Jasa_6d2 s/d Kode_Jasa_6d6
+    
+    Nama_WP = cleanStr(Nama_WP)
+    
+    sql = "insert into pph23(NPWP_KPP, Kode_Form, Masa_Pajak, " & _
+            "Tahun_Pajak, Pembetulan, NPWP_WP, " & _
+            "Nama_WP, Alamat_WP, Nomor_Bukti_Potong, " & _
+            "Tanggal_Bukti_Potong, " & _
+            "Nilai_Bruto_1, Tarif_1, PPh_Yang_Dipotong__1, " & _
+            "Nilai_Bruto_2, Tarif_2, PPh_Yang_Dipotong__2, " & _
+            "Nilai_Bruto_3, Tarif_3, PPh_Yang_Dipotong__3, " & _
+            "Nilai_Bruto_4, Tarif_4, PPh_Yang_Dipotong__4, " & _
+            "Nilai_Bruto_5, Tarif_5, PPh_Yang_Dipotong__5, " & _
+            "Nilai_Bruto_6a, Tarif_6a, PPh_Yang_Dipotong__6a, " & _
+            "Nilai_Bruto_6b, Tarif_6b, PPh_Yang_Dipotong__6b, " & _
+            "Nilai_Bruto_6c, Tarif_6c, PPh_Yang_Dipotong__6c, " & _
+            "Kode_Jasa_6d1, Nilai_Bruto_6d1, Tarif_6d1, PPh_Yang_Dipotong__6d1, "
+    sql = sql & _
+            "Jumlah_Nilai_Bruto_, Jumlah_PPh_Yang_Dipotong, kode_divisi, tgl_import, " & _
+            "kd_proyek, nott, nofaktur) values ('" & _
+            Trim(npwp_kpp) & "', '" & Trim(Kode_Form) & "','" & Trim(Masa_Pajak) & "','" & _
+            Trim(Tahun_Pajak) & "','" & Trim(Pembetulan) & "','" & Trim(npwp_wp) & "','" & _
+            Trim(Nama_WP) & "','" & Trim(Alamat_WP) & "','" & Trim(Nomor_Bukti_Potong) & "','" & _
+            set_tgl_perv(Tanggal_Bukti_Potong) & "','" & _
+            Trim(Nilai_Bruto_1) & "','" & Trim(Tarif_1) & "','" & Trim(PPh_Yang_Dipotong__1) & "','" & _
+            Trim(Nilai_Bruto_2) & "','" & Trim(Tarif_2) & "','" & Trim(PPh_Yang_Dipotong__2) & "','" & _
+            Trim(Nilai_Bruto_3) & "','" & Trim(Tarif_3) & "','" & Trim(PPh_Yang_Dipotong__3) & "','" & _
+            Trim(Nilai_Bruto_4) & "','" & Trim(Tarif_4) & "','" & Trim(PPh_Yang_Dipotong__4) & "','" & _
+            Trim(Nilai_Bruto_5) & "','" & Trim(Tarif_5) & "','" & Trim(PPh_Yang_Dipotong__5) & "','" & _
+            Trim(Nilai_Bruto_6a) & "','" & Trim(Tarif_6a) & "','" & Trim(PPh_Yang_Dipotong__6a) & "','" & _
+            Trim(Nilai_Bruto_6b) & "','" & Trim(Tarif_6b) & "','" & Trim(PPh_Yang_Dipotong__6b) & "','" & _
+            Trim(Nilai_Bruto_6c) & "','" & Trim(Tarif_6c) & "','" & Trim(PPh_Yang_Dipotong__6c) & "','" & _
+            Trim(Kode_Jasa_6d1) & "','" & Trim(Nilai_Bruto_6d1) & "','" & Trim(Tarif_6d1) & "','" & Trim(PPh_Yang_Dipotong__6d1) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_) & "','" & Trim(Jumlah_PPh_Yang_Dipotong) & "','" & Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & _
+            Trim(kd_proyek) & "','" & Trim(nott) & "','" & Trim(nofaktur) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph23_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph23_insert = 2
+        Else
+            tbPph23_insert = 1
+        End If
+    End If
+End Function
+
+Function tbPph21tf_delete(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from pph21tf where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Nomor_Bukti_Potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPph21tf_delete = False
+    Else
+        tbPph21tf_delete = True
+    End If
+End Function
+
+Function tbPph21tf_isDataAda(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "select count(*) from pph21tf where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Nomor_Bukti_Potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbPph21tf_isDataAda = True
+    Else
+        tbPph21tf_isDataAda = False
+    End If
+End Function
+
+Function tbPph21tf_insert(npwp_kpp As String, Masa_Pajak As String, Tahun_Pajak As String, _
+                        Pembetulan As String, Nomor_Bukti_Potong As String, npwp As String, _
+                        NIK As String, nama As String, alamat As String, WP_Luar_Negeri As String, _
+                        Kode_Negara As String, Kode_Pajak As String, Jumlah_Bruto As Currency, _
+                        Jumlah_DPP As Currency, Tanpa_NPWP As Currency, Tarif As String, _
+                        Jumlah_PPh As Currency, NPWP_Pemotong As String, Nama_Pemotong As String, _
+                        Tanggal_Bukti_Potong As Date, kode_divisi As String, kd_proyek As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '3: skip
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPph21tf_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan) = True Then
+        
+        '-- update, langsung skip
+        tbPph21tf_insert = 3
+        Exit Function
+        '---
+    
+        'data sudah ada, di hapus dulu
+        'If tbPph21tf_delete(NPWP_KPP, Nomor_Bukti_Potong, Pembetulan) = True Then
+        '    return1 = 2
+        'Else
+        '    tbPph21tf_insert = -1
+        '    Exit Function
+        'End If
+    End If
+    
+    Nama_Pemotong = cleanStr(Nama_Pemotong)
+    nama = cleanStr(nama)
+    sql = "insert into pph21tf(NPWP_KPP, Masa_Pajak, Tahun_Pajak, " & _
+            "Pembetulan, Nomor_Bukti_Potong, NPWP, " & _
+            "NIK, Nama, Alamat, " & _
+            "WP_Luar_Negeri, Kode_Negara, Kode_Pajak, " & _
+            "Jumlah_Bruto, Jumlah_DPP, Tanpa_NPWP, " & _
+            "Tarif, Jumlah_PPh, NPWP_Pemotong, " & _
+            "Nama_Pemotong, Tanggal_Bukti_Potong, kode_divisi, tgl_import, kd_proyek) values ('" & _
+            Trim(npwp_kpp) & "','" & Trim(Masa_Pajak) & "','" & Trim(Tahun_Pajak) & "','" & _
+            Trim(Pembetulan) & "','" & Trim(Nomor_Bukti_Potong) & "','" & Trim(npwp) & "','" & _
+            Trim(NIK) & "','" & Trim(nama) & "','" & Trim(alamat) & "','" & _
+            Trim(WP_Luar_Negeri) & "','" & Trim(Kode_Negara) & "','" & Trim(Kode_Pajak) & "','" & _
+            Trim(Jumlah_Bruto) & "','" & Trim(Jumlah_DPP) & "','" & Trim(Tanpa_NPWP) & "','" & _
+            Trim(Tarif) & "','" & Trim(Jumlah_PPh) & "','" & Trim(NPWP_Pemotong) & "','" & _
+            Trim(Nama_Pemotong) & "','" & set_tgl_perv(Tanggal_Bukti_Potong) & "','" & Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & Trim(kd_proyek) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph21tf_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph21tf_insert = 2
+        Else
+            tbPph21tf_insert = 1
+        End If
+    End If
+End Function
+
+Function tbPph21Bulanan_delete(npwp_kpp As String, Masa_Pajak As String, Tahun_Pajak As String, Pembetulan As String, _
+                                npwp As String, nama As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from pph21bulanan where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Masa_Pajak = '" & Trim(Masa_Pajak) & _
+            "' and Tahun_Pajak = '" & Trim(Tahun_Pajak) & _
+            "' and NPWP = '" & Trim(npwp) & _
+            "' and Nama = '" & Trim(nama) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPph21Bulanan_delete = False
+    Else
+        tbPph21Bulanan_delete = True
+    End If
+End Function
+
+Function tbPph21Bulanan_isDataAda(npwp_kpp As String, Masa_Pajak As String, Tahun_Pajak As String, Pembetulan As String, _
+                                npwp As String, nama As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "select count(*) from pph21bulanan where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Masa_Pajak = '" & Trim(Masa_Pajak) & _
+            "' and Tahun_Pajak = '" & Trim(Tahun_Pajak) & _
+            "' and NPWP = '" & Trim(npwp) & _
+            "' and Nama = '" & Trim(nama) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbPph21Bulanan_isDataAda = True
+    Else
+        tbPph21Bulanan_isDataAda = False
+    End If
+End Function
+
+Function tbPph21Bulanan_insert(npwp_kpp As String, Masa_Pajak As String, Tahun_Pajak As String, _
+                                Pembetulan As String, npwp As String, nama As String, Kode_Pajak As String, _
+                                Jumlah_Bruto As Currency, Jumlah_PPh As Currency, Kode_Negara As String, _
+                                kode_divisi As String, kd_proyek As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '3: skip
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPph21Bulanan_isDataAda(npwp_kpp, Masa_Pajak, Tahun_Pajak, Pembetulan, npwp, nama) = True Then
+        
+        '-- update, langsung skip
+        tbPph21Bulanan_insert = 3
+        Exit Function
+        '---
+        
+        'data sudah ada, di hapus dulu
+        'If tbPph21Bulanan_delete(NPWP_KPP, Masa_Pajak, Tahun_Pajak, Pembetulan, npwp, nama) = True Then
+        '    return1 = 2
+        'Else
+        '    tbPph21Bulanan_insert = -1
+        '    Exit Function
+        'End If
+    End If
+    
+    nama = cleanStr(nama)
+    sql = "insert into pph21bulanan(NPWP_KPP, Masa_Pajak, Tahun_Pajak, " & _
+            "Pembetulan, NPWP, Nama, " & _
+            "Kode_Pajak, Jumlah_Bruto, Jumlah_PPh, " & _
+            "Kode_Negara, kode_divisi, tgl_import, kd_proyek) values ('" & _
+            Trim(npwp_kpp) & "','" & Trim(Masa_Pajak) & "','" & Trim(Tahun_Pajak) & "','" & _
+            Trim(Pembetulan) & "','" & Trim(npwp) & "','" & Trim(nama) & "','" & _
+            Trim(Kode_Pajak) & "','" & Trim(Jumlah_Bruto) & "','" & Trim(Jumlah_PPh) & "','" & _
+            Trim(Kode_Negara) & "','" & Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & Trim(kd_proyek) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph21Bulanan_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph21Bulanan_insert = 2
+        Else
+            tbPph21Bulanan_insert = 1
+        End If
+    End If
+End Function
+
+Function tbPphX_delete(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String, nmTable1 As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from " & nmTable1 & " where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Nomor_Bukti_Potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPphX_delete = False
+    Else
+        tbPphX_delete = True
+    End If
+End Function
+
+Function tbPphX_isDataAda(npwp_kpp As String, Nomor_Bukti_Potong As String, Pembetulan As String, nmTable1 As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "select count(*) from " & nmTable1 & " where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and Nomor_Bukti_Potong = '" & Trim(Nomor_Bukti_Potong) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbPphX_isDataAda = True
+    Else
+        tbPphX_isDataAda = False
+    End If
+End Function
+
+
+Function tbPph21Tahunan_insert(npwp_kpp As String, Masa_Pajak As String, Tahun_Pajak As String, _
+                            Pembetulan As String, Nomor_Bukti_Potong As String, Masa_Perolehan_Awal As String, _
+                            Masa_Perolehan_Akhir As String, npwp As String, NIK As String, nama As String, _
+                            alamat As String, Jenis_Kelamin As String, Status_PTKP As String, _
+                            Jumlah_Tanggungan As String, Nama_Jabatan As String, WP_Luar_Negeri As String, _
+                            Kode_Negara As String, Kode_Pajak As String, Jumlah_1 As Currency, _
+                            Jumlah_2 As Currency, Jumlah_3 As Currency, Jumlah_4 As Currency, _
+                            Jumlah_5 As Currency, Jumlah_6 As Currency, Jumlah_7 As Currency, _
+                            Jumlah_8 As Currency, Jumlah_9 As Currency, Jumlah_10 As Currency, _
+                            Jumlah_11 As Currency, Jumlah_12 As Currency, Jumlah_13 As Currency, _
+                            Jumlah_14 As Currency, Jumlah_15 As Currency, Jumlah_16 As Currency, _
+                            Jumlah_17 As Currency, Jumlah_18 As Currency, Jumlah_19 As Currency, _
+                            Jumlah_20 As Currency, Status_Pindah As String, NPWP_Pemotong As String, _
+                            Nama_Pemotong As String, Tanggal_Bukti_Potong As Date, kode_divisi As String, _
+                            kd_proyek As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '3: skip
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPphX_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph21tahunan") = True Then
+        
+        '-- update, langsung skip
+        tbPph21Tahunan_insert = 3
+        Exit Function
+        '---
+        
+        'data sudah ada, di hapus dulu
+        'If tbPphX_delete(NPWP_KPP, Nomor_Bukti_Potong, Pembetulan, "pph21tahunan") = True Then
+        '    return1 = 2
+        'Else
+        '    tbPph21Tahunan_insert = -1
+        '    Exit Function
+        'End If
+    End If
+    
+    nama = cleanStr(nama)
+    sql = "insert into pph21tahunan(NPWP_KPP, Masa_Pajak, Tahun_Pajak, " & _
+            "Pembetulan, Nomor_Bukti_Potong, Masa_Perolehan_Awal, " & _
+            "Masa_Perolehan_Akhir, NPWP, NIK, " & _
+            "Nama, Alamat, Jenis_Kelamin, " & _
+            "Status_PTKP, Jumlah_Tanggungan, Nama_Jabatan, " & _
+            "WP_Luar_Negeri, Kode_Negara, Kode_Pajak, " & _
+            "Jumlah_1,  Jumlah_2, Jumlah_3, " & _
+            "Jumlah_4, Jumlah_5, Jumlah_6, " & _
+            "Jumlah_7, Jumlah_8, Jumlah_9, " & _
+            "Jumlah_10, Jumlah_11, Jumlah_12, " & _
+            "Jumlah_13, Jumlah_14, Jumlah_15, " & _
+            "Jumlah_16, Jumlah_17, Jumlah_18, " & _
+            "Jumlah_19, Jumlah_20, Status_Pindah, " & _
+            "NPWP_Pemotong, Nama_Pemotong, Tanggal_Bukti_Potong, " & _
+            "kode_divisi, tgl_import, kd_proyek) values ('" & _
+            Trim(npwp_kpp) & "','" & Trim(Masa_Pajak) & "','" & Trim(Tahun_Pajak) & "','" & _
+            Trim(Pembetulan) & "','" & Trim(Nomor_Bukti_Potong) & "','" & Trim(Masa_Perolehan_Awal) & "','" & _
+            Trim(Masa_Perolehan_Akhir) & "','" & Trim(npwp) & "','" & Trim(NIK) & "','" & _
+            Trim(nama) & "','" & Trim(alamat) & "','" & Trim(Jenis_Kelamin) & "','" & _
+            Trim(Status_PTKP) & "','" & Trim(Jumlah_Tanggungan) & "','" & Trim(Nama_Jabatan) & "','" & _
+            Trim(WP_Luar_Negeri) & "','" & Trim(Kode_Negara) & "','" & Trim(Kode_Pajak) & "','" & _
+            Trim(Jumlah_1) & "','" & Trim(Jumlah_2) & "','" & Trim(Jumlah_3) & "','" & _
+            Trim(Jumlah_4) & "','" & Trim(Jumlah_5) & "','" & Trim(Jumlah_6) & "','" & _
+            Trim(Jumlah_7) & "','" & Trim(Jumlah_8) & "','" & Trim(Jumlah_9) & "','" & _
+            Trim(Jumlah_10) & "','" & Trim(Jumlah_11) & "','" & Trim(Jumlah_12) & "','"
+    sql = sql & _
+            Trim(Jumlah_13) & "','" & Trim(Jumlah_14) & "','" & Trim(Jumlah_15) & "','" & _
+            Trim(Jumlah_16) & "','" & Trim(Jumlah_17) & "','" & Trim(Jumlah_18) & "','" & _
+            Trim(Jumlah_19) & "','" & Trim(Jumlah_20) & "','" & Trim(Status_Pindah) & "','" & _
+            Trim(NPWP_Pemotong) & "','" & Trim(Nama_Pemotong) & "','" & set_tgl_perv(Tanggal_Bukti_Potong) & "','" & _
+            Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & Trim(kd_proyek) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph21Tahunan_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph21Tahunan_insert = 2
+        Else
+            tbPph21Tahunan_insert = 1
+        End If
+    End If
+End Function
+
+Function tbPph21Tahunan2_isDataAda(npwp As String, NIK As String, nama As String, Tahun As String, _
+                                    Bulan As String, npwp_kpp As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "select count(*) from pph21tahunan2 where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' and Bulan = '" & _
+            Trim(Bulan) & "' and NPWP_KPP = '" & Trim(npwp_kpp) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbPph21Tahunan2_isDataAda = True
+    Else
+        tbPph21Tahunan2_isDataAda = False
+    End If
+End Function
+
+Function tbPph21Tahunan2_getTotal(KolomTotal As String, npwp As String, NIK As String, nama As String, _
+                                Tahun As String, npwp_kpp As String) As Currency
+
+    Dim sql As String, t As String
+    
+    sql = "select sum(" & KolomTotal & ") from pph21tahunan2 " & _
+            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' and NPWP_KPP = '" & _
+            Trim(npwp_kpp) & "'"
+    t = cari_data1(cnn, sql, True)
+    tbPph21Tahunan2_getTotal = cek_Money(t)
+End Function
+
+Sub tbPph21Tahunan2_getTotal2(npwp As String, NIK As String, nama As String, _
+                                Tahun As String, npwp_kpp As String, ByRef Gaji As Currency, _
+                                ByRef Tnj_PPh As Currency, ByRef Tunjangan_Lain As Currency, _
+                                ByRef JHT_JPN As Currency, ByRef Insentif_THR_Lainnya As Currency, _
+                                ByRef Pensiun_Potongan_Lain As Currency)
+
+    Dim sql As String, rs As ADODB.Recordset
+    
+    sql = "select sum(Gaji), sum(Tnj_PPh), sum(Tunjangan_Lain), sum(JHT_JPN), " & _
+            "sum(Insentif + THR + Lainnya), sum(Pensiun_Potongan_Lain) from pph21tahunan2 " & _
+            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' and NPWP_KPP = '" & _
+            Trim(npwp_kpp) & "'"
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("sql error", "", sql)
+        Exit Sub
+    End If
+    
+    If RecordCount(rs) > 0 Then
+        Gaji = cek_Money(rs(0))
+        Tnj_PPh = cek_Money(rs(1))
+        Tunjangan_Lain = cek_Money(rs(2))
+        JHT_JPN = cek_Money(rs(3))
+        Insentif_THR_Lainnya = cek_Money(rs(4))
+        Pensiun_Potongan_Lain = cek_Money(rs(5))
+    Else
+        Gaji = 0
+        Tnj_PPh = 0
+        Tunjangan_Lain = 0
+        JHT_JPN = 0
+        Insentif_THR_Lainnya = 0
+        Pensiun_Potongan_Lain = 0
+    End If
+End Sub
+
+Function tbPph21Tahunan2_getTotalBruto(npwp As String, NIK As String, nama As String, Tahun As String) As Currency
+    'gabungan  Gaji, Tnj PPh Gaji,     JHT & JPN,  Tunjangan Lain
+    'per npwp dalam 1 tahun
+    
+    Dim sql As String, t As String
+    
+    sql = "select sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif) from pph21tahunan2 " & _
+            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "'"
+    t = cari_data1(cnn, sql, True)
+    tbPph21Tahunan2_getTotalBruto = cek_Money(t)
+End Function
+
+Function tbPph21Tahunan2_getBulanAkhir(npwp As String, NIK As String, nama As String, Tahun As String, _
+                                        npwp_kpp As String) As String
+                                        
+    'dari data yang ada, utk id tsb, pada kpp tsb, data bulan paling akhir bulan apa ??
+    
+    Dim sql As String, t As String
+    
+    sql = "select max(convert(Bulan, signed)) from pph21tahunan2 where NPWP = '" & Trim(npwp) & _
+            "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' and NPWP_KPP = '" & _
+            Trim(npwp_kpp) & "'"
+    t = cari_data1(cnn, sql, True)
+    tbPph21Tahunan2_getBulanAkhir = t
+    
+End Function
+
+Function tbPph21Tahunan2_getBulanAwal(npwp As String, NIK As String, nama As String, Tahun As String, _
+                                        npwp_kpp As String) As String
+                                        
+    'dari data yang ada, utk id tsb, pada kpp tsb, data bulan paling akhir bulan apa ??
+    
+    Dim sql As String, t As String
+    
+    sql = "select min(convert(Bulan, signed)) from pph21tahunan2 where NPWP = '" & Trim(npwp) & _
+            "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' and NPWP_KPP = '" & _
+            Trim(npwp_kpp) & "'"
+    t = cari_data1(cnn, sql, True)
+    tbPph21Tahunan2_getBulanAwal = t
+    
+End Function
+
+Function tbPph21Tahunan2_getData_byId(id1 As String, namaKolom As String) As String
+    Dim sql As String, t As String
+    
+    sql = "select " & namaKolom & " from pph21tahunan2 where id1 = '" & id1 & "'"
+    t = cari_data1(cnn, sql)
+    tbPph21Tahunan2_getData_byId = Trim(t)
+End Function
+
+Sub tbPph21Tahunan2_getData_byId2(id1 As String, ByRef no_urut_bukti_potong As String, _
+                                ByRef alamat As String, ByRef P_L As String, ByRef Ptkp As String)
+    
+    Dim rs As ADODB.Recordset
+    Dim sql As String
+    
+    sql = "select no_urut_buktipotong, alamat, p_L, PTKP from pph21tahunan2 where id1 = '" & id1 & "'"
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("sql error", "", sql)
+        Exit Sub
+    End If
+    
+    If RecordCount(rs) > 0 Then
+        no_urut_bukti_potong = cek_null(rs(0))
+        alamat = cek_null(rs(1))
+        P_L = cek_null(rs(2))
+        Ptkp = cek_null(rs(3))
+    Else
+        no_urut_bukti_potong = ""
+        alamat = ""
+        P_L = ""
+        Ptkp = ""
+    End If
+    
+End Sub
+
+Sub tbPph21Tahunan2_setBiayaJabatanPerBulan()
+    Dim sql As String
+    Dim rs As ADODB.Recordset
+    Dim jRec As Long, c As Long
+    Dim Bruto As Currency, biayaJabatan As Currency
+    Dim id1, totalN As Currency
+    
+    sql = "update pph21tahunan2 set NPWP = '000000000000000' where NPWP = '' or NPWP is null or NPWP = '0'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("sql error", "", sql)
+        Exit Sub
+    End If
+    
+    sql = "update pph21tahunan2 set NIK = '0000000000000000' where NIK = '' or NIK is null or NIK = '0' "
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("sql error", "", sql)
+        Exit Sub
+    End If
+    
+    '-- 5% dari bruto
+    '-- bruto = gaji + tnj_pph + tnjLain + tnj_jht_jpn
+    '--- jika kurang dari 500rb, + 5% * (insentif + THR + Lainnya)
+    '------ tetap maksimal 500
+    
+    sql = "select (Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain), id1 , (insentif + THR + lainnya) as n " & _
+            "from pph21tahunan2 " & _
+            "where (biaya_jabatan = 0 or biaya_jabatan is null) and " & _
+            "((Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain) > 0)"
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error sql", "", sql)
+        Exit Sub
+    End If
+    
+    jRec = RecordCount(rs)
+    If jRec <= 0 Then Exit Sub
+    
+    rs.MoveFirst
+    c = 1
+    Do While rs.EOF = False
+        Call info(2, "cek biaya_jabatan. Run " & c & "/" & jRec & ". " & Round((c / jRec) * 100, 2) & "%", _
+                    frMenu1.StatusBar1)
+        Bruto = cek_Money(rs(0))
+        id1 = cek_null(rs(1))
+        totalN = cek_Money(rs(2))
+        
+        biayaJabatan = 0.05 * Bruto
+        If biayaJabatan < 500000 Then
+            biayaJabatan = biayaJabatan + (0.05 * totalN)
+            If biayaJabatan > 500000 Then biayaJabatan = 500000
+        Else
+            biayaJabatan = 500000
+        End If
+        
+        'update
+        sql = "update pph21tahunan2 set biaya_jabatan = '" & biayaJabatan & _
+                "' where id1 = '" & id1 & "'"
+        If ExecSQL1(cnn, sql) <> 0 Then
+            sql = InputBox("error sql", "", sql)
+            Exit Do
+        End If
+        
+        rs.MoveNext
+        c = c + 1
+    Loop
+    
+End Sub
+
+
+
+Function tbPph21Tahunan2_getTotalBiayaJabatan(npwp As String, NIK As String, nama As String, _
+                                                Tahun As String, npwp_kpp As String) As Currency
+    'per npwp dalam 1 tahun
+    '-- biaya jabatan : =IF((bruto*0,05)<500000;(J5*0,05);500000)
+    'jadi harus di cari dulu nilai bruto untuk setiap bulannya...
+    
+    Dim sql As String, t As String, jmlBulan As String
+    Dim totalBiayaJabatan As Currency, Tambahan As Currency, Bruto As Currency
+    Dim rs As ADODB.Recordset
+    
+    
+    
+    'cek, jika jumlah data ada 12, maka ==
+    'totalBiayaJabatan = Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif + THR + Lainnya
+    sql = "select count(*), " & _
+            "sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif + THR + Lainnya) as bruto1, " & _
+            "sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain ) as tambahan " & _
+            "from pph21tahunan2 " & _
+            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & _
+            "' and NPWP_KPP = '" & Trim(npwp_kpp) & "'"
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error sql", "", sql)
+        tbPph21Tahunan2_getTotalBiayaJabatan = 0
+        Exit Function
+    Else
+        If RecordCount(rs) > 0 Then
+            jmlBulan = cek_null(rs(0))
+            Bruto = cek_Money(cek_null(rs(1)))
+            Tambahan = cek_Money(cek_null(rs(2)))
+            
+            If CInt(jmlBulan) = 12 Then
+                totalBiayaJabatan = Bruto * 0.05
+                If totalBiayaJabatan > 6000000 Then totalBiayaJabatan = 6000000
+            Else
+                totalBiayaJabatan = Bruto * 0.05
+                If totalBiayaJabatan < (CInt(jmlBulan) * 500000) Then
+                    'hitung tambahan
+                    totalBiayaJabatan = totalBiayaJabatan + (CCur(Tambahan) * 0.05)
+                    If totalBiayaJabatan > (CInt(jmlBulan) * 500000) Then
+                        totalBiayaJabatan = (CInt(jmlBulan) * 500000)
+                    End If
+                Else
+                    totalBiayaJabatan = (CInt(jmlBulan) * 500000)
+                End If
+            End If
+        End If
+    
+        totalBiayaJabatan = Round(totalBiayaJabatan, 0)
+        tbPph21Tahunan2_getTotalBiayaJabatan = totalBiayaJabatan
+            
+    End If
+    
+    'jmlBulan = cari_data1(cnn, sql, True)
+    'If CInt(jmlBulan) = 12 Then
+    '    sql = "select sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif + THR + Lainnya) " & _
+    '            "from pph21tahunan2 " & _
+    '            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+    '            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "'"
+    '    t = cari_data1(cnn, sql, True)
+    '    totalBiayaJabatan = CCur(t) * 0.05
+    '    If totalBiayaJabatan > 6000000 Then totalBiayaJabatan = 6000000
+    'Else
+    '    sql = "select sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain ) " & _
+    '            "from pph21tahunan2 " & _
+     '           "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+     ''           "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & _
+     '           "' and NPWP_KPP = '" & Trim(npwp_kpp) & "'"
+     '   t = cari_data1(cnn, sql, True)
+     '   totalBiayaJabatan = CCur(t) * 0.05
+        
+     '   If totalBiayaJabatan < (CInt(jmlBulan) * 500000) Then
+            'hitung tambahan
+     '       sql = "select sum(insentif + THR + lainnya) " & _
+     '           "from pph21tahunan2 " & _
+      '          "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+      ''          "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & _
+      '          "' and NPWP_KPP = '" & Trim(npwp_kpp) & "'"
+      '      tambahan = cari_data1(cnn, sql, True)
+      '      totalBiayaJabatan = totalBiayaJabatan + CCur(tambahan)
+      '      If totalBiayaJabatan > (CInt(jmlBulan) * 500000) Then
+      '          totalBiayaJabatan = (CInt(jmlBulan) * 500000)
+      '      End If
+      '  End If
+        
+    'End If
+    
+    'totalBiayaJabatan = Round(totalBiayaJabatan, 0)
+    'tbPph21Tahunan2_getTotalBiayaJabatan = totalBiayaJabatan
+End Function
+
+Function tbPph21Tahunan2_getTotalIuranPensiun(npwp As String, NIK As String, nama As String, Tahun As String) As Currency
+    'per npwp dalam 1 tahun
+    
+    Dim sql As String, t As String
+    
+    sql = "select sum(Pensiun_Potongan_Lain) from pph21tahunan2 " & _
+            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "'"
+    t = cari_data1(cnn, sql, True)
+    tbPph21Tahunan2_getTotalIuranPensiun = cek_Money(t)
+End Function
+
+
+
+Function tbPph21Tahunan2_getTotalNetto(ByRef totalBruto As Currency, ByRef totalBiayaJabatan As Currency, _
+                                        ByRef totalIuranPensiun As Currency, npwp As String, NIK As String, nama As String, Tahun As String) As Currency
+    ' "totalBruto -  totalBiaya Jabatan  - totalIuran Pensiun/Potongan Lain
+    Dim total_netto As Currency
+    Dim sql As String, t As String
+    Dim rs As ADODB.Recordset
+    
+    'totalbruto = sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif)
+    'totalBiayaJabatan = sum(biaya_jabatan) from pph21tahunan2 " & _
+    'totalIuranPensiun = sum(Pensiun_Potongan_Lain) from pph21tahunan2 " &
+
+    'total_netto = tbPph21Tahunan2_getTotalBruto(NPWP, NIK, Nama, Tahun) - _
+    '                tbPph21Tahunan2_getTotalBiayaJabatan(NPWP, NIK, Nama, Tahun) - _
+    '                tbPph21Tahunan2_getTotalIuranPensiun(NPWP, NIK, Nama, Tahun)
+    
+    sql = "select '' as totak_netto, " & _
+            "sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif + THR ) as totalBruto, " & _
+            "sum(biaya_jabatan) as totalBiayaJabatan, sum(Pensiun_Potongan_Lain) as totalIuranPensiun " & _
+            "from pph21tahunan2 " & _
+            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "'"
+    'sql = InputBox("sql", "", sql)
+    If OpenRecordSet(cnn, rs, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error sql", "", sql)
+        totalBruto = 0
+        totalBiayaJabatan = 0
+        totalIuranPensiun = 0
+        total_netto = 0
+    End If
+    
+    If RecordCount(rs) <= 0 Then
+        totalBruto = 0
+        totalBiayaJabatan = 0
+        totalIuranPensiun = 0
+        total_netto = 0
+    End If
+    
+    totalBruto = cek_Money(rs(1))
+    totalBiayaJabatan = cek_Money(rs(2))
+    'cek, jika jumlah data ada 12, maka ==
+    'totalBiayaJabatan = Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif + THR + Lainnya
+    sql = "select count(*) from pph21tahunan2 " & _
+            "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) = 12 Then
+        sql = "select sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif + THR + Lainnya) " & _
+                "from pph21tahunan2 " & _
+                "where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+                "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "'"
+        t = cari_data1(cnn, sql, True)
+        totalBiayaJabatan = Round(CCur(t) * 0.05, 0)
+        If totalBiayaJabatan > 12000000 Then totalBiayaJabatan = 12000000
+    End If
+    
+    totalIuranPensiun = cek_Money(rs(3))
+    total_netto = totalBruto - totalBiayaJabatan - totalIuranPensiun
+    
+    tbPph21Tahunan2_getTotalNetto = total_netto
+End Function
+
+Function tbPph21Tahunan2_Delete(id1 As String) As Boolean
+    'delete byId
+    Dim sql As String, t As String
+    
+    sql = "delete from pph21tahunan2 where id1 = '" & id1 & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPph21Tahunan2_Delete = False
+    Else
+        tbPph21Tahunan2_Delete = True
+    End If
+End Function
+
+Function tbPph21Tahunan2_Delete1Kpp(kdCENTER As String, Tahun As String, Bulan As String, _
+                                    npwp_kpp As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "delete from pph21tahunan2 where kdCENTER = '" & Trim(kdCENTER) & "' and Tahun = '" & _
+            Trim(Tahun) & "' and Bulan = '" & Trim(Bulan) & "' and NPWP_KPP = '" & Trim(npwp_kpp) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPph21Tahunan2_Delete1Kpp = False
+    Else
+        tbPph21Tahunan2_Delete1Kpp = True
+    End If
+End Function
+
+Function tbPph21Tahunan2_Delete1Divisi(kdCENTER As String, Tahun As String, Bulan As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "delete from pph21tahunan2 where kdCENTER = '" & Trim(kdCENTER) & "' and Tahun = '" & _
+            Trim(Tahun) & "' and Bulan = '" & Trim(Bulan) & "' "
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbPph21Tahunan2_Delete1Divisi = False
+    Else
+        tbPph21Tahunan2_Delete1Divisi = True
+    End If
+End Function
+
+Function tbPph21Tahunan2_get_kdCENTER(npwp As String, NIK As String, nama As String, Tahun As String, _
+                                        npwp_kpp As String, bulanAwal As String) As String
+    Dim sql As String, t As String
+    
+    sql = "select kdCENTER from pph21tahunan2 " & _
+            "where npwp = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & "' and  nama = '" & _
+            Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' and " & _
+            "npwp_kpp = '" & Trim(npwp_kpp) & "' and Bulan = '" & Trim(bulanAwal) & "'"
+    t = cari_data1(cnn, sql, True)
+    tbPph21Tahunan2_get_kdCENTER = t
+End Function
+
+Function tbPph21Tahunan2_get_ID1(npwp As String, NIK As String, nama As String, Tahun As String) As String
+    Dim sql As String, t As String
+    
+    sql = "select id1 from pph21tahunan2 " & _
+            "where npwp = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & "' and  nama = '" & _
+            Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' "
+    t = cari_data1(cnn, sql, True)
+    tbPph21Tahunan2_get_ID1 = t
+End Function
+
+
+
+
+Function tbPph21Tahunan2_get_NilaiPTKP(id1 As String) As Currency
+    Dim Ptkp As String
+    Dim nilaiPtkp As Currency
+        
+    Ptkp = tbPph21Tahunan2_getData_byId(id1, "PTKP")
+    nilaiPtkp = tbM_Ptkp_getNilai(Ptkp)
+    tbPph21Tahunan2_get_NilaiPTKP = nilaiPtkp
+End Function
+
+Function tbPph21Tahunan2_getPtkp(npwp As String, NIK As String, nama As String, Tahun As String, Bulan As String, Ptkp) As String
+    'cek data ptkp sebelumnya, jika kosong, pakai data ptkp yang sudah ada...
+    'jika data ptkp yang ada masanya lebih awal, ambil data yang ada sebelumnya..
+    
+    Dim sql As String, t As String
+    
+    sql = "select PTKP From pph21tahunan2 where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' order by cast(Bulan as int)"
+    t = cari_data1(cnn, sql)
+    If Trim(t) = "" Then
+        tbPph21Tahunan2_getPtkp = UCase(Ptkp)
+    Else
+        tbPph21Tahunan2_getPtkp = UCase(t)
+    End If
+End Function
+
+Function tbPph21Tahunan2_getJabatan(npwp As String, NIK As String, nama As String, Tahun As String) As String
+    
+    Dim sql As String, t As String
+    
+    sql = "select Jabatan From pph21tahunan2 where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "' order by cast(Bulan as int) desc "
+    t = cari_data1(cnn, sql)
+    tbPph21Tahunan2_getJabatan = t
+End Function
+
+Function tbPph21Tahunan2_getJmlData(npwp As String, NIK As String, nama As String, Tahun As String, _
+                                    npwpKpp As String) As String
+    
+    Dim sql As String, t As String
+    
+    If Trim(npwpKpp) = "" Or Trim(npwpKpp) = "ALL" Then
+        sql = "select count(*) From pph21tahunan2 where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & "'"
+    Else
+        sql = "select count(*) From pph21tahunan2 where NPWP = '" & Trim(npwp) & "' and NIK = '" & Trim(NIK) & _
+            "' and Nama = '" & Trim(nama) & "' and Tahun = '" & Trim(Tahun) & _
+            "' and NPWP_KPP = '" & Trim(npwpKpp) & "'"
+    End If
+    t = cari_data1(cnn, sql)
+    tbPph21Tahunan2_getJmlData = t
+End Function
+
+Function tbPph21Tahunan2_Edit(id1 As String, nama As String, npwp As String, _
+                                NIK As String, alamat As String, Jabatan As String, P_L As String, _
+                                Bulan As String) As Boolean
+                                
+    Dim sql As String
+    
+    sql = "update pph21tahunan2 set Nama = '" & UCase(CekPetik(nama)) & "', NPWP = '" & UCase(CekPetik(npwp)) & _
+            "', NIK = '" & UCase(CekPetik(NIK)) & "', Alamat = '" & UCase(CekPetik(alamat)) & _
+            "', Jabatan = '" & UCase(CekPetik(Jabatan)) & "', P_L = '" & P_L & "', Bulan = '" & Trim(Bulan) & "' where id1 = '" & UCase(CekPetik(id1)) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph21Tahunan2_Edit = False
+    Else
+        tbPph21Tahunan2_Edit = True
+    End If
+
+End Function
+
+Function tbPph21Tahunan2_insert(No1 As Long, Bulan As String, Tahun As String, npwp_kpp As String, _
+                                kdPROYEK As String, kdCENTER As String, nama As String, npwp As String, _
+                                NIK As String, alamat As String, Jabatan As String, P_L As String, _
+                                Ptkp As String, Gaji As Currency, Tnj_PPh As Currency, Tunjangan_Lain As Currency, _
+                                JHT_JPN As Currency, Bruto As Currency, Insentif As Currency, THR As Currency, _
+                                Lainnya As Currency, Pensiun_Potongan_Lain As Currency) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '3: skip
+    '--
+    
+    Dim sql As String, t As String
+    Dim skip1 As Boolean
+    Dim return1 As Integer
+    
+    return1 = 0
+    skip1 = False
+    If tbPph21Tahunan2_isDataAda(npwp, NIK, nama, Tahun, Bulan, npwp_kpp) = True Then
+        skip1 = True
+    End If
+    
+    If skip1 = False Then
+        nama = cleanStr(nama)
+        t = tbPph21Tahunan2_getPtkp(npwp, NIK, nama, Tahun, Bulan, Ptkp)
+        Ptkp = t
+    
+        sql = "insert into pph21tahunan2(No1, Bulan, Tahun, " & _
+            "NPWP_KPP, kdPROYEK, kdCENTER, " & _
+            "Nama, NPWP, NIK, " & _
+            "Alamat, Jabatan, P_L, " & _
+            "PTKP, Gaji, Tnj_PPh, " & _
+            "Tunjangan_Lain, JHT_JPN, Bruto, " & _
+            "Insentif, THR, Lainnya, " & _
+            "Pensiun_Potongan_Lain, tglupdate) values ('" & _
+            Trim(No1) & "','" & Trim(Bulan) & "','" & Trim(Tahun) & "','" & _
+            Trim(npwp_kpp) & "','" & Trim(kdPROYEK) & "','" & Trim(kdCENTER) & "','" & _
+            Trim(nama) & "','" & Trim(npwp) & "','" & Trim(NIK) & "','" & _
+            Trim(alamat) & "','" & Trim(Jabatan) & "','" & Trim(P_L) & "','" & _
+            Trim(Ptkp) & "','" & Trim(Gaji) & "','" & Trim(Tnj_PPh) & "','" & _
+            Trim(Tunjangan_Lain) & "','" & Trim(JHT_JPN) & "','" & Trim(Bruto) & "','" & _
+            Trim(Insentif) & "','" & Trim(THR) & "','" & Trim(Lainnya) & "','" & _
+            Trim(Pensiun_Potongan_Lain) & "','" & set_tgl_perv(Now) & "')"
+        If ExecSQL1(cnn, sql) <> 0 Then
+            sql = InputBox("", "", sql)
+            tbPph21Tahunan2_insert = -1
+        Else
+            If return1 = 2 Then
+                tbPph21Tahunan2_insert = 2
+            Else
+                tbPph21Tahunan2_insert = 1
+            End If
+        End If
+    Else
+        tbPph21Tahunan2_insert = 3
+    End If
+End Function
+
+
+Function tbPph21Tahunan2_edit2(No1 As Long, Bulan As String, Tahun As String, npwp_kpp As String, _
+                                kdPROYEK As String, kdCENTER As String, nama As String, npwp As String, _
+                                NIK As String, alamat As String, Jabatan As String, P_L As String, _
+                                Ptkp As String, id1 As String, Insentif, THR, Lainnya) As Integer
+    
+    '-- return
+    '1: sukses edit
+    '--
+    
+    Dim sql As String, t As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    nama = cleanStr(nama)
+    
+    sql = "update pph21tahunan2 set No1 = '" & Trim(No1) & "', Bulan = '" & Trim(Bulan) & "', Tahun = '" & _
+            Trim(Tahun) & "', npwp_kpp = '" & Trim(npwp_kpp) & "', kdPROYEK = '" & _
+            Trim(kdPROYEK) & "', kdCENTER = '" & Trim(kdCENTER) & "', nama = '" & Trim(nama) & "', npwp = '" & _
+            Trim(npwp) & "', NIK = '" & Trim(NIK) & "', alamat = '" & Trim(alamat) & "', Jabatan = '" & _
+            Trim(Jabatan) & "', P_L = '" & Trim(P_L) & "', Ptkp = '" & Trim(Ptkp) & "', Insentif = '" & _
+            Trim(Insentif) & "', THR = '" & Trim(THR) & "', lainnya = '" & Trim(Lainnya) & "' where id1 = '" & _
+            Trim(id1) & "'"
+    
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph21Tahunan2_edit2 = -1
+    Else
+        tbPph21Tahunan2_edit2 = 1
+    End If
+End Function
+
+
+Function tbPph22_insert(npwp_kpp As String, k02 As String, Masa_Pajak As String, Tahun_Pajak As String, _
+                        Pembetulan As String, npwp As String, Nama_NPWP As String, alamat As String, _
+                        Nomor_Bukti_Potong As String, Tanggal_Bukti_Potong As Date, k35 As String, _
+                        k36 As String, k37 As String, k38 As String, k39 As String, k40 As String, _
+                        k41 As String, k42 As String, k43 As String, Nilai_DPP As Currency, Tarif As String, _
+                        Nilai_PPh As Currency, k47 As String, k48 As String, k49 As String, k50 As String, _
+                        j51 As String, j52 As String, kode_divisi As String, kd_proyek As String, nott As String, nofaktur As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPphX_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph22") = True Then
+        'data sudah ada, di hapus dulu
+        If tbPphX_delete(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph22") = True Then
+            return1 = 2
+        Else
+            tbPph22_insert = -1
+            Exit Function
+        End If
+    End If
+    
+    Nama_NPWP = cleanStr(Nama_NPWP)
+    sql = "insert into pph22(NPWP_KPP, k02, Masa_Pajak, " & _
+            "Tahun_Pajak, Pembetulan, NPWP, " & _
+            "Nama_NPWP, Alamat, Nomor_Bukti_Potong, " & _
+            "Tanggal_Bukti_Potong, k35, k36, " & _
+            "k37, k38, k39, " & _
+            "k40, k41, k42, " & _
+            "k43, Nilai_DPP, Tarif, " & _
+            "Nilai_PPh, k47, k48, " & _
+            "k49, k50, j51, " & _
+            "j52, kode_divisi, tgl_import, " & _
+            "kd_proyek, nott, nofaktur) values ('" & _
+            Trim(npwp_kpp) & "','" & Trim(k02) & "','" & Trim(Masa_Pajak) & "','" & _
+            Trim(Tahun_Pajak) & "','" & Trim(Pembetulan) & "','" & Trim(npwp) & "','" & _
+            Trim(Nama_NPWP) & "','" & Trim(alamat) & "','" & Trim(Nomor_Bukti_Potong) & "','" & _
+            set_tgl_perv(Tanggal_Bukti_Potong) & "','" & Trim(k35) & "','" & Trim(k36) & "','" & _
+            Trim(k37) & "','" & Trim(k38) & "','" & Trim(k39) & "','" & _
+            Trim(k40) & "','" & Trim(k41) & "','" & Trim(k42) & "','" & _
+            Trim(k43) & "','" & Trim(Nilai_DPP) & "','" & Trim(Tarif) & "','" & _
+            Trim(Nilai_PPh) & "','" & Trim(k47) & "','" & Trim(k48) & "','" & _
+            Trim(k49) & "','" & Trim(k50) & "','" & Trim(j51) & "','" & _
+            Trim(j52) & "','" & Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & _
+            Trim(kd_proyek) & "','" & Trim(nott) & "','" & Trim(nofaktur) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph22_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph22_insert = 2
+        Else
+            tbPph22_insert = 1
+        End If
+    End If
+End Function
+
+Function tbPph26_insert(npwp_kpp As String, Kode_Form As String, Masa_Pajak As String, Tahun_Pajak As String, _
+                    Pembetulan As String, npwp_wp As String, Nama_WP As String, Alamat_WP As String, _
+                    Nomor_Bukti_Potong As String, Tanggal_Bukti_Potong As Date, _
+                    Nilai_Bruto_1 As Currency, Tarif_1 As String, PPh_Yang_Dipotong__1 As Currency, _
+                    Nilai_Bruto_2 As Currency, Tarif_2 As String, PPh_Yang_Dipotong__2 As Currency, _
+                    Nilai_Bruto_3 As Currency, Tarif_3 As String, PPh_Yang_Dipotong__3 As Currency, _
+                    Nilai_Bruto_4 As Currency, Tarif_4 As String, PPh_Yang_Dipotong__4 As Currency, _
+                    Nilai_Bruto_5 As Currency, Tarif_5 As String, PPh_Yang_Dipotong__5 As Currency, _
+                    Nilai_Bruto_6a As Currency, Tarif_6a As String, PPh_Yang_Dipotong__6a As Currency, _
+                    Nilai_Bruto_6b As Currency, Tarif_6b As String, PPh_Yang_Dipotong__6b As Currency, _
+                    Nilai_Bruto_6c As Currency, Tarif_6c As String, PPh_Yang_Dipotong__6c As Currency, _
+                    Kode_Jasa_6d1 As String, Nilai_Bruto_6d1 As Currency, Tarif_6d1 As String, PPh_Yang_Dipotong__6d1 As Currency, _
+                    Jumlah_Nilai_Bruto_ As Currency, Jumlah_PPh_Yang_Dipotong As Currency, kode_divisi As String, _
+                    kd_proyek As String, nott As String, nofaktur As String) As Integer
+    
+    
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPphX_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph26") = True Then
+        'data sudah ada, di hapus dulu
+        If tbPphX_delete(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph26") = True Then
+            return1 = 2
+        Else
+            tbPph26_insert = -1
+            Exit Function
+        End If
+    End If
+    
+    
+    'yang di skip
+    'Nilai_Bruto_9 s/d Nilai_Bruto_13
+    'Kode_Jasa_6d2 s/d Kode_Jasa_6d6
+    
+    Nama_WP = cleanStr(Nama_WP)
+    sql = "insert into pph26(NPWP_KPP, Kode_Form, Masa_Pajak, " & _
+            "Tahun_Pajak, Pembetulan, NPWP_WP, " & _
+            "Nama_WP, Alamat_WP, Nomor_Bukti_Potong, " & _
+            "Tanggal_Bukti_Potong, " & _
+            "Nilai_Bruto_1, Tarif_1, PPh_Yang_Dipotong__1, " & _
+            "Nilai_Bruto_2, Tarif_2, PPh_Yang_Dipotong__2, " & _
+            "Nilai_Bruto_3, Tarif_3, PPh_Yang_Dipotong__3, " & _
+            "Nilai_Bruto_4, Tarif_4, PPh_Yang_Dipotong__4, " & _
+            "Nilai_Bruto_5, Tarif_5, PPh_Yang_Dipotong__5, " & _
+            "Nilai_Bruto_6a, Tarif_6a, PPh_Yang_Dipotong__6a, " & _
+            "Nilai_Bruto_6b, Tarif_6b, PPh_Yang_Dipotong__6b, " & _
+            "Nilai_Bruto_6c, Tarif_6c, PPh_Yang_Dipotong__6c, " & _
+            "Kode_Jasa_6d1, Nilai_Bruto_6d1, Tarif_6d1, PPh_Yang_Dipotong__6d1, "
+    sql = sql & _
+            "Jumlah_Nilai_Bruto_, Jumlah_PPh_Yang_Dipotong, kode_divisi, tgl_import, " & _
+            "kd_proyek, nott, nofaktur) values ('" & _
+            Trim(npwp_kpp) & "', '" & Trim(Kode_Form) & "','" & Trim(Masa_Pajak) & "','" & _
+            Trim(Tahun_Pajak) & "','" & Trim(Pembetulan) & "','" & Trim(npwp_wp) & "','" & _
+            Trim(Nama_WP) & "','" & Trim(Alamat_WP) & "','" & Trim(Nomor_Bukti_Potong) & "','" & _
+            set_tgl_perv(Tanggal_Bukti_Potong) & "','" & _
+            Trim(Nilai_Bruto_1) & "','" & Trim(Tarif_1) & "','" & Trim(PPh_Yang_Dipotong__1) & "','" & _
+            Trim(Nilai_Bruto_2) & "','" & Trim(Tarif_2) & "','" & Trim(PPh_Yang_Dipotong__2) & "','" & _
+            Trim(Nilai_Bruto_3) & "','" & Trim(Tarif_3) & "','" & Trim(PPh_Yang_Dipotong__3) & "','" & _
+            Trim(Nilai_Bruto_4) & "','" & Trim(Tarif_4) & "','" & Trim(PPh_Yang_Dipotong__4) & "','" & _
+            Trim(Nilai_Bruto_5) & "','" & Trim(Tarif_5) & "','" & Trim(PPh_Yang_Dipotong__5) & "','" & _
+            Trim(Nilai_Bruto_6a) & "','" & Trim(Tarif_6a) & "','" & Trim(PPh_Yang_Dipotong__6a) & "','" & _
+            Trim(Nilai_Bruto_6b) & "','" & Trim(Tarif_6b) & "','" & Trim(PPh_Yang_Dipotong__6b) & "','" & _
+            Trim(Nilai_Bruto_6c) & "','" & Trim(Tarif_6c) & "','" & Trim(PPh_Yang_Dipotong__6c) & "','" & _
+            Trim(Kode_Jasa_6d1) & "','" & Trim(Nilai_Bruto_6d1) & "','" & Trim(Tarif_6d1) & "','" & Trim(PPh_Yang_Dipotong__6d1) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_) & "','" & Trim(Jumlah_PPh_Yang_Dipotong) & "','" & Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & _
+            Trim(kd_proyek) & "','" & Trim(nott) & "','" & Trim(nofaktur) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph26_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph26_insert = 2
+        Else
+            tbPph26_insert = 1
+        End If
+    End If
+End Function
+
+
+
+Function tbPph42Konstruksi_insert(npwp_kpp As String, Kode_Form As String, Masa_Pajak As String, _
+                                    Tahun_Pajak As String, Pembetulan As String, npwp_wp As String, _
+                                    Nama_WP As String, Alamat_WP As String, Nomor_Bukti_Potong As String, _
+                                    Tanggal_Bukti_Potong As Date, Jenis_Hadiah_Undian_1 As String, _
+                                    Kode_Option_Tempat_Penyimpanan_1 As String, Jumlah_Nilai_Bruto_1 As Currency, _
+                                    Tarif_1 As String, PPh_Yang_Dipotong__1 As Currency, _
+                                    Jenis_Hadiah_Undian_2 As String, Kode_Option_Tempat_Penyimpanan_2 As String, _
+                                    Jumlah_Nilai_Bruto_2 As Currency, Tarif_2 As String, _
+                                    PPh_Yang_Dipotong__2 As Currency, Jenis_Hadiah_Undian_3 As String, _
+                                    Kode_Option_Tempat_Penyimpanan_3 As String, Jumlah_Nilai_Bruto_3 As Currency, _
+                                    Tarif_3 As String, PPh_Yang_Dipotong__3 As Currency, _
+                                    Jenis_Hadiah_Undian_4 As String, Kode_Option_Tempat_Penyimpanan_4 As String, _
+                                    Jumlah_Nilai_Bruto_4 As Currency, Tarif_4 As String, _
+                                    PPh_Yang_Dipotong__4 As Currency, Jenis_Hadiah_Undian_5 As String, _
+                                    Kode_Option_Tempat_Penyimpanan_5 As String, Jumlah_Nilai_Bruto_5 As Currency, _
+                                    Tarif_5 As String, PPh_Yang_Dipotong__5 As Currency, _
+                                    Jenis_Hadiah_Undian_6 As String, Jumlah_Nilai_Bruto_6 As Currency, _
+                                    Tarif_6 As String, PPh_Yang_Dipotong__6 As Currency, _
+                                    Jumlah_Nilai_Bruto_7 As Currency, Tarif_7 As String, _
+                                    PPh_Yang_Dipotong_7 As Currency, Jenis_Penghasilan_8 As String, _
+                                    Jumlah_Nilai_Bruto_8 As Currency, Tarif_8 As String, _
+                                    PPh_Yang_Dipotong_8 As Currency, Jumlah_PPh_Yang_Dipotong As Currency, _
+                                    Tanggal_Jatuh_Tempo_Obligasi As String, Tanggal_Perolehan_Obligasi As String, _
+                                    Tanggal_Penjualan_Obligasi As String, Holding_Periode_Obligasi As String, _
+                                    Time_Periode_Obligasi As String, kode_divisi As String, kd_proyek As String, nott As String, nofaktur As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPphX_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph42_konstruksi") = True Then
+        'data sudah ada, di hapus dulu
+        If tbPphX_delete(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph42_konstruksi") = True Then
+            return1 = 2
+        Else
+            tbPph42Konstruksi_insert = -1
+            Exit Function
+        End If
+    End If
+    
+    
+    'yang di skip
+    
+    sql = "insert into pph42_konstruksi(NPWP_KPP, Kode_Form, Masa_Pajak, " & _
+            "Tahun_Pajak, Pembetulan, NPWP_WP, " & _
+            "Nama_WP, Alamat_WP, Nomor_Bukti_Potong, " & _
+            "Tanggal_Bukti_Potong, " & _
+            "Jenis_Hadiah_Undian_1, Kode_Option_Tempat_Penyimpanan_1, " & _
+            "Jumlah_Nilai_Bruto_1, Tarif_1, PPh_Yang_Dipotong__1, " & _
+            "Jenis_Hadiah_Undian_2, Kode_Option_Tempat_Penyimpanan_2, " & _
+            "Jumlah_Nilai_Bruto_2, Tarif_2, PPh_Yang_Dipotong__2, " & _
+            "Jenis_Hadiah_Undian_3, Kode_Option_Tempat_Penyimpanan_3, " & _
+            "Jumlah_Nilai_Bruto_3, Tarif_3, PPh_Yang_Dipotong__3, " & _
+            "Jenis_Hadiah_Undian_4, Kode_Option_Tempat_Penyimpanan_4," & _
+            "Jumlah_Nilai_Bruto_4, Tarif_4, PPh_Yang_Dipotong__4, " & _
+            "Jenis_Hadiah_Undian_5, Kode_Option_Tempat_Penyimpanan_5, " & _
+            "Jumlah_Nilai_Bruto_5, Tarif_5, PPh_Yang_Dipotong__5, " & _
+            "Jenis_Hadiah_Undian_6, Jumlah_Nilai_Bruto_6, Tarif_6, " & _
+            "PPh_Yang_Dipotong__6, " & _
+            "Jumlah_Nilai_Bruto_7, Tarif_7, PPh_Yang_Dipotong_7, " & _
+            "Jenis_Penghasilan_8, Jumlah_Nilai_Bruto_8, Tarif_8, PPh_Yang_Dipotong_8, " & _
+            "Jumlah_PPh_Yang_Dipotong, Tanggal_Jatuh_Tempo_Obligasi, Tanggal_Perolehan_Obligasi, " & _
+            "Tanggal_Penjualan_Obligasi, Holding_Periode_Obligasi, Time_Periode_Obligasi, " & _
+            "kode_divisi, tgl_import, kd_proyek, nott, nofaktur) values ('"
+    sql = sql & _
+            Trim(npwp_kpp) & "','" & Trim(Kode_Form) & "','" & Trim(Masa_Pajak) & "','" & _
+            Trim(Tahun_Pajak) & "','" & Trim(Pembetulan) & "','" & Trim(npwp_wp) & "','" & _
+            Trim(Nama_WP) & "','" & Trim(Alamat_WP) & "','" & Trim(Nomor_Bukti_Potong) & "','" & _
+            set_tgl_perv(Tanggal_Bukti_Potong) & "','" & _
+            Trim(Jenis_Hadiah_Undian_1) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_1) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_1) & "','" & Trim(Tarif_1) & "','" & Trim(PPh_Yang_Dipotong__1) & "','" & _
+            Trim(Jenis_Hadiah_Undian_2) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_2) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_2) & "','" & Trim(Tarif_2) & "','" & Trim(PPh_Yang_Dipotong__2) & "','" & _
+            Trim(Jenis_Hadiah_Undian_3) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_3) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_3) & "','" & Trim(Tarif_3) & "','" & Trim(PPh_Yang_Dipotong__3) & "','" & _
+            Trim(Jenis_Hadiah_Undian_4) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_4) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_4) & "','" & Trim(Tarif_4) & "','" & Trim(PPh_Yang_Dipotong__4) & "','" & _
+            Trim(Jenis_Hadiah_Undian_5) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_5) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_5) & "','" & Trim(Tarif_5) & "','" & Trim(PPh_Yang_Dipotong__5) & "','"
+    sql = sql & _
+            Trim(Jenis_Hadiah_Undian_6) & "','" & Trim(Jumlah_Nilai_Bruto_6) & "','" & Trim(Tarif_6) & "','" & _
+            Trim(PPh_Yang_Dipotong__6) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_7) & "','" & Trim(Tarif_7) & "','" & Trim(PPh_Yang_Dipotong_7) & "','" & _
+            Trim(Jenis_Penghasilan_8) & "','" & Trim(Jumlah_Nilai_Bruto_8) & "','" & Trim(Tarif_8) & "','" & Trim(PPh_Yang_Dipotong_8) & "','" & _
+            Trim(Jumlah_PPh_Yang_Dipotong) & "','" & Trim(Tanggal_Jatuh_Tempo_Obligasi) & "','" & Trim(Tanggal_Perolehan_Obligasi) & "','" & _
+            Trim(Tanggal_Penjualan_Obligasi) & "','" & Trim(Holding_Periode_Obligasi) & "','" & Trim(Time_Periode_Obligasi) & "','" & _
+            Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & _
+            Trim(kd_proyek) & "','" & Trim(nott) & "','" & Trim(nofaktur) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph42Konstruksi_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph42Konstruksi_insert = 2
+        Else
+            tbPph42Konstruksi_insert = 1
+        End If
+    End If
+End Function
+
+Function tbPph42Sewa_insert(npwp_kpp As String, Kode_Form As String, Masa_Pajak As String, _
+                                    Tahun_Pajak As String, Pembetulan As String, npwp_wp As String, _
+                                    Nama_WP As String, Alamat_WP As String, Nomor_Bukti_Potong As String, _
+                                    Tanggal_Bukti_Potong As Date, Jenis_Hadiah_Undian_1 As String, _
+                                    Kode_Option_Tempat_Penyimpanan_1 As String, Jumlah_Nilai_Bruto_1 As Currency, _
+                                    Tarif_1 As String, PPh_Yang_Dipotong__1 As Currency, _
+                                    Jenis_Hadiah_Undian_2 As String, Kode_Option_Tempat_Penyimpanan_2 As String, _
+                                    Jumlah_Nilai_Bruto_2 As Currency, Tarif_2 As String, _
+                                    PPh_Yang_Dipotong__2 As Currency, Jenis_Hadiah_Undian_3 As String, _
+                                    Kode_Option_Tempat_Penyimpanan_3 As String, Jumlah_Nilai_Bruto_3 As Currency, _
+                                    Tarif_3 As String, PPh_Yang_Dipotong__3 As Currency, _
+                                    Jenis_Hadiah_Undian_4 As String, Kode_Option_Tempat_Penyimpanan_4 As String, _
+                                    Jumlah_Nilai_Bruto_4 As Currency, Tarif_4 As String, _
+                                    PPh_Yang_Dipotong__4 As Currency, Jenis_Hadiah_Undian_5 As String, _
+                                    Kode_Option_Tempat_Penyimpanan_5 As String, Jumlah_Nilai_Bruto_5 As Currency, _
+                                    Tarif_5 As String, PPh_Yang_Dipotong__5 As Currency, _
+                                    Jenis_Hadiah_Undian_6 As String, Jumlah_Nilai_Bruto_6 As Currency, _
+                                    Tarif_6 As String, PPh_Yang_Dipotong__6 As Currency, _
+                                    Jumlah_Nilai_Bruto_7 As Currency, Tarif_7 As String, _
+                                    PPh_Yang_Dipotong_7 As Currency, Jenis_Penghasilan_8 As String, _
+                                    Jumlah_Nilai_Bruto_8 As Currency, Tarif_8 As String, _
+                                    PPh_Yang_Dipotong_8 As Currency, Jumlah_PPh_Yang_Dipotong As Currency, _
+                                    Tanggal_Jatuh_Tempo_Obligasi As String, Tanggal_Perolehan_Obligasi As String, _
+                                    Tanggal_Penjualan_Obligasi As String, Holding_Periode_Obligasi As String, _
+                                    Time_Periode_Obligasi As String, kode_divisi As String, kd_proyek As String, nott As String, nofaktur As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbPphX_isDataAda(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph42_sewa") = True Then
+        'data sudah ada, di hapus dulu
+        If tbPphX_delete(npwp_kpp, Nomor_Bukti_Potong, Pembetulan, "pph42_sewa") = True Then
+            return1 = 2
+        Else
+            tbPph42Sewa_insert = -1
+            Exit Function
+        End If
+    End If
+    
+    
+    'yang di skip
+    Nama_WP = cleanStr(Nama_WP)
+    sql = "insert into pph42_sewa(NPWP_KPP, Kode_Form, Masa_Pajak, " & _
+            "Tahun_Pajak, Pembetulan, NPWP_WP, " & _
+            "Nama_WP, Alamat_WP, Nomor_Bukti_Potong, " & _
+            "Tanggal_Bukti_Potong, " & _
+            "Jenis_Hadiah_Undian_1, Kode_Option_Tempat_Penyimpanan_1, " & _
+            "Jumlah_Nilai_Bruto_1, Tarif_1, PPh_Yang_Dipotong__1, " & _
+            "Jenis_Hadiah_Undian_2, Kode_Option_Tempat_Penyimpanan_2, " & _
+            "Jumlah_Nilai_Bruto_2, Tarif_2, PPh_Yang_Dipotong__2, " & _
+            "Jenis_Hadiah_Undian_3, Kode_Option_Tempat_Penyimpanan_3, " & _
+            "Jumlah_Nilai_Bruto_3, Tarif_3, PPh_Yang_Dipotong__3, " & _
+            "Jenis_Hadiah_Undian_4, Kode_Option_Tempat_Penyimpanan_4," & _
+            "Jumlah_Nilai_Bruto_4, Tarif_4, PPh_Yang_Dipotong__4, " & _
+            "Jenis_Hadiah_Undian_5, Kode_Option_Tempat_Penyimpanan_5, " & _
+            "Jumlah_Nilai_Bruto_5, Tarif_5, PPh_Yang_Dipotong__5, " & _
+            "Jenis_Hadiah_Undian_6, Jumlah_Nilai_Bruto_6, Tarif_6, " & _
+            "PPh_Yang_Dipotong__6, " & _
+            "Jumlah_Nilai_Bruto_7, Tarif_7, PPh_Yang_Dipotong_7, " & _
+            "Jenis_Penghasilan_8, Jumlah_Nilai_Bruto_8, Tarif_8, PPh_Yang_Dipotong_8, " & _
+            "Jumlah_PPh_Yang_Dipotong, Tanggal_Jatuh_Tempo_Obligasi, Tanggal_Perolehan_Obligasi, " & _
+            "Tanggal_Penjualan_Obligasi, Holding_Periode_Obligasi, Time_Periode_Obligasi, " & _
+            "kode_divisi, tgl_import, kd_proyek, nott, nofaktur) values ('"
+    sql = sql & _
+            Trim(npwp_kpp) & "','" & Trim(Kode_Form) & "','" & Trim(Masa_Pajak) & "','" & _
+            Trim(Tahun_Pajak) & "','" & Trim(Pembetulan) & "','" & Trim(npwp_wp) & "','" & _
+            Trim(Nama_WP) & "','" & Trim(Alamat_WP) & "','" & Trim(Nomor_Bukti_Potong) & "','" & _
+            set_tgl_perv(Tanggal_Bukti_Potong) & "','" & _
+            Trim(Jenis_Hadiah_Undian_1) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_1) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_1) & "','" & Trim(Tarif_1) & "','" & Trim(PPh_Yang_Dipotong__1) & "','" & _
+            Trim(Jenis_Hadiah_Undian_2) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_2) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_2) & "','" & Trim(Tarif_2) & "','" & Trim(PPh_Yang_Dipotong__2) & "','" & _
+            Trim(Jenis_Hadiah_Undian_3) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_3) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_3) & "','" & Trim(Tarif_3) & "','" & Trim(PPh_Yang_Dipotong__3) & "','" & _
+            Trim(Jenis_Hadiah_Undian_4) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_4) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_4) & "','" & Trim(Tarif_4) & "','" & Trim(PPh_Yang_Dipotong__4) & "','" & _
+            Trim(Jenis_Hadiah_Undian_5) & "','" & Trim(Kode_Option_Tempat_Penyimpanan_5) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_5) & "','" & Trim(Tarif_5) & "','" & Trim(PPh_Yang_Dipotong__5) & "','"
+    sql = sql & _
+            Trim(Jenis_Hadiah_Undian_6) & "','" & Trim(Jumlah_Nilai_Bruto_6) & "','" & Trim(Tarif_6) & "','" & _
+            Trim(PPh_Yang_Dipotong__6) & "','" & _
+            Trim(Jumlah_Nilai_Bruto_7) & "','" & Trim(Tarif_7) & "','" & Trim(PPh_Yang_Dipotong_7) & "','" & _
+            Trim(Jenis_Penghasilan_8) & "','" & Trim(Jumlah_Nilai_Bruto_8) & "','" & Trim(Tarif_8) & "','" & Trim(PPh_Yang_Dipotong_8) & "','" & _
+            Trim(Jumlah_PPh_Yang_Dipotong) & "','" & Trim(Tanggal_Jatuh_Tempo_Obligasi) & "','" & Trim(Tanggal_Perolehan_Obligasi) & "','" & _
+            Trim(Tanggal_Penjualan_Obligasi) & "','" & Trim(Holding_Periode_Obligasi) & "','" & Trim(Time_Periode_Obligasi) & "','" & _
+            Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "','" & _
+            Trim(kd_proyek) & "','" & Trim(nott) & "','" & Trim(nofaktur) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbPph42Sewa_insert = -1
+    Else
+        If return1 = 2 Then
+            tbPph42Sewa_insert = 2
+        Else
+            tbPph42Sewa_insert = 1
+        End If
+    End If
+End Function
+
+
+
+Function tbSSPpph_insert(npwp_kpp As String, Kode_Form As String, Masa_Pajak_SSP As String, _
+                        Tahun_Pajak_SSP As String, Pembetulan As String, NTPN As String, _
+                        Tanggal_Setor_SSP As Date, Jumlah_SSP As Currency, Kode_KAP As String, _
+                        Kode_Jenis_Setoran As String, Jenis_Pajak As String, kode_divisi As String) As Integer
+    
+    '-- return
+    '1: sukses insert
+    '2: update
+    '--
+    
+    Dim sql As String
+    Dim return1 As Integer
+    
+    return1 = 0
+    If tbSSPpph_isDataAda(npwp_kpp, NTPN, Pembetulan) = True Then
+        'data sudah ada, di hapus dulu
+        If tbSSPpph_delete(npwp_kpp, NTPN, Pembetulan) = True Then
+            return1 = 2
+        Else
+            tbSSPpph_insert = -1
+            Exit Function
+        End If
+    End If
+    
+    
+    'yang di skip
+    
+    sql = "insert into ssp_pph(NPWP_KPP, Kode_Form, Masa_Pajak, " & _
+            "Tahun_Pajak, Pembetulan, NTPN, " & _
+            "Tanggal_Setor_SSP, Jumlah_SSP, Kode_KAP, " & _
+            "Kode_Jenis_Setoran, Jenis_Pajak, kode_divisi, tgl_import) values ('" & _
+            Trim(npwp_kpp) & "','" & Trim(Kode_Form) & "','" & Trim(Masa_Pajak_SSP) & "','" & _
+            Trim(Tahun_Pajak_SSP) & "','" & Trim(Pembetulan) & "','" & Trim(NTPN) & "','" & _
+            set_tgl_perv(Tanggal_Setor_SSP) & "','" & Trim(Jumlah_SSP) & "','" & Trim(Kode_KAP) & "','" & _
+            Trim(Kode_Jenis_Setoran) & "','" & Trim(Jenis_Pajak) & "','" & Trim(kode_divisi) & "','" & set_tgl_perv(Now) & "')"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        sql = InputBox("", "", sql)
+        tbSSPpph_insert = -1
+    Else
+        If return1 = 2 Then
+            tbSSPpph_insert = 2
+        Else
+            tbSSPpph_insert = 1
+        End If
+    End If
+End Function
+
+
+Function tbSSPpph_isDataAda(npwp_kpp As String, NTPN As String, Pembetulan As String) As Boolean
+    Dim sql As String, t As String
+    
+    sql = "select count(*) from ssp_pph where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and NTPN = '" & Trim(NTPN) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    t = cari_data1(cnn, sql, True)
+    If CInt(t) > 0 Then
+        tbSSPpph_isDataAda = True
+    Else
+        tbSSPpph_isDataAda = False
+    End If
+End Function
+
+Function tbSSPpph_delete(npwp_kpp As String, NTPN As String, Pembetulan As String) As Boolean
+    Dim sql As String
+    
+    sql = "delete from ssp_pph where NPWP_KPP = '" & Trim(npwp_kpp) & _
+            "' and NTPN = '" & Trim(NTPN) & _
+            "' and Pembetulan = '" & Trim(Pembetulan) & "'"
+    If ExecSQL1(cnn, sql) <> 0 Then
+        tbSSPpph_delete = False
+    Else
+        tbSSPpph_delete = True
+    End If
+End Function
+
+Sub fetch_dbRep_Divisi(kodeDivisi As String, ByRef sb1 As StatusBar)
+    Dim cnnTemp As ADODB.connection
+    Dim sql As String
+    Dim rsSumber As ADODB.Recordset, rsTujuan As ADODB.Recordset
+    Dim jRec As Long, c As Long, a As Integer
+    
+    'open cnnTemp
+    Call db_Access_open(cnnTemp, App.Path & "\data\dbrep.mdb")
+    
+    'delete
+    If Trim(kodeDivisi) = "ALL" Then
+        sql = "delete from mdivisi"
+    Else
+        sql = "delete from mdivisi where kodedivisi = '" & Trim(kodeDivisi) & "'"
+    End If
+    
+    If ExecSQL1(cnnTemp, sql) <> 0 Then
+        sql = InputBox("error", "", sql)
+        Exit Sub
+    End If
+    
+    
+    'insert
+    If Trim(kodeDivisi) = "ALL" Then
+        sql = "select * from mdivisi"
+    Else
+        sql = "select * from mdivisi where kodedivisi = '" & Trim(kodeDivisi) & "'"
+    End If
+    
+    If OpenRecordSet(cnn, rsSumber, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error", "", sql)
+        Exit Sub
+    Else
+        jRec = RecordCount(rsSumber)
+        If jRec > 0 Then
+            '-- open target
+            sql = "select * from mdivisi"
+            If OpenRecordSet(cnnTemp, rsTujuan, sql, adOpenDynamic, adLockPessimistic, adUseClient) <> 0 Then
+                sql = InputBox("error", "", sql)
+                Exit Sub
+            End If
+            '--
+        
+            rsSumber.MoveFirst
+            c = 1
+            Do While rsSumber.EOF = False
+                Call info(2, "Fetch divisi. Run " & c & "/" & jRec, sb1)
+                
+                rsTujuan.AddNew
+                For a = 0 To rsSumber.Fields.Count - 1
+                    rsTujuan.Fields(a).Value = cek_null(rsSumber.Fields(a).Value)
+                Next
+                rsTujuan.Update
+                
+                rsSumber.MoveNext
+                c = c + 1
+            Loop
+            Set rsSumber = Nothing
+        End If
+    End If
+    
+End Sub
+
+Sub fetch_dbRep_KPP(npwp_kpp As String, ByRef sb1 As StatusBar)
+    Dim cnnTemp As ADODB.connection
+    Dim sql As String
+    Dim rsSumber As ADODB.Recordset, rsTujuan As ADODB.Recordset
+    Dim jRec As Long, c As Long, a As Integer
+    
+    'open cnnTemp
+    Call db_Access_open(cnnTemp, App.Path & "\data\dbrep.mdb")
+    
+    'delete
+    If Trim(npwp_kpp) = "ALL" Then
+        sql = "delete from mkpp"
+    Else
+        sql = "delete from mkpp where npwp = '" & Trim(npwp_kpp) & "'"
+    End If
+    
+    If ExecSQL1(cnnTemp, sql) <> 0 Then
+        sql = InputBox("error", "", sql)
+        Exit Sub
+    End If
+    
+    
+    'insert
+    If Trim(npwp_kpp) = "ALL" Then
+        sql = "select * from mkpp"
+    Else
+        sql = "select * from mkpp where npwp = '" & Trim(npwp_kpp) & "'"
+    End If
+    
+    If OpenRecordSet(cnn, rsSumber, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error", "", sql)
+        Exit Sub
+    Else
+        jRec = RecordCount(rsSumber)
+        If jRec > 0 Then
+            '-- open target
+            sql = "select * from mkpp"
+            If OpenRecordSet(cnnTemp, rsTujuan, sql, adOpenDynamic, adLockPessimistic, adUseClient) <> 0 Then
+                sql = InputBox("error", "", sql)
+                Exit Sub
+            End If
+            '--
+        
+            rsSumber.MoveFirst
+            c = 1
+            Do While rsSumber.EOF = False
+                Call info(2, "Fetch divisi. Run " & c & "/" & jRec, sb1)
+                
+                rsTujuan.AddNew
+                For a = 0 To rsSumber.Fields.Count - 1
+                    rsTujuan.Fields(a).Value = cek_null(rsSumber.Fields(a).Value)
+                Next
+                rsTujuan.Update
+                
+                rsSumber.MoveNext
+                c = c + 1
+            Loop
+            Set rsSumber = Nothing
+        End If
+    End If
+    
+End Sub
+
+Sub fetch_dbRep_PPhX(npwp_kpp As String, kodeDivisi As String, kodeProyek As String, tahunPajak As String, masaPajak As String, _
+                        ByRef sb1 As StatusBar, nmTabel1 As String, Optional jenisPPhSSP As String = "")
+                        
+    Dim cnnTemp As ADODB.connection
+    Dim sql As String, kondisi As String
+    Dim rsSumber As ADODB.Recordset, rsTujuan As ADODB.Recordset
+    Dim jRec As Long, c As Long, a As Integer
+    
+    'open cnnTemp
+    Call db_Access_open(cnnTemp, App.Path & "\data\dbrep.mdb")
+    
+    'delete
+    sql = "delete from " & nmTabel1
+    If ExecSQL1(cnnTemp, sql) <> 0 Then
+        sql = InputBox("error", "", sql)
+        Exit Sub
+    End If
+    
+    
+    'insert
+    sql = "select * from " & nmTabel1
+    
+    kondisi = ""
+    If Trim(npwp_kpp) = "ALL" Then
+    Else
+        kondisi = kondisi & " NPWP_KPP = '" & Trim(npwp_kpp) & "'"
+    End If
+    
+    If Trim(kodeDivisi) = "ALL" Then
+    Else
+        If Trim(kondisi) = "" Then
+        Else
+            kondisi = kondisi & " AND "
+        End If
+        kondisi = kondisi & " kode_divisi = '" & Trim(kodeDivisi) & "'"
+    End If
+    
+    If IsNumeric(kodeProyek) = True Then
+        If Trim(kondisi) = "" Then
+        Else
+            kondisi = kondisi & " AND "
+        End If
+        kondisi = kondisi & " kd_proyek = '" & Trim(kodeProyek) & "'"
+    End If
+    
+    If Trim(tahunPajak) = "ALL" Then
+    Else
+        If Trim(kondisi) = "" Then
+        Else
+            kondisi = kondisi & " AND "
+        End If
+        kondisi = kondisi & " Tahun_Pajak = '" & Trim(tahunPajak) & "'"
+    End If
+    
+    If Trim(masaPajak) = "ALL" Then
+    Else
+        If Trim(kondisi) = "" Then
+        Else
+            kondisi = kondisi & " AND "
+        End If
+        kondisi = kondisi & " Masa_Pajak = '" & Trim(masaPajak) & "'"
+    End If
+    
+    If Trim(nmTabel1) = "ssp_pph" Then
+        'hanya untuk ssp_pph
+        If Trim(jenisPPhSSP) = "" Or Trim(jenisPPhSSP) = "ALL" Then
+        Else
+            If Trim(kondisi) = "" Then
+            Else
+                kondisi = kondisi & " AND "
+            End If
+            kondisi = kondisi & " Jenis_Pajak = '" & Trim(jenisPPhSSP) & "'"
+        End If
+    End If
+    
+    
+    If Trim(kondisi) = "" Then
+    Else
+        sql = sql & " WHERE " & kondisi
+    End If
+    '---
+    
+    
+    
+    'MsgBox sql
+    'sql = InputBox("error", "", sql)
+    If OpenRecordSet(cnn, rsSumber, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error", "", sql)
+        Exit Sub
+    Else
+        jRec = RecordCount2(rsSumber)
+        If jRec > 0 Then
+            '-- open target
+            sql = "select * from " & nmTabel1
+            If OpenRecordSet(cnnTemp, rsTujuan, sql, adOpenDynamic, adLockPessimistic, adUseClient) <> 0 Then
+                sql = InputBox("error", "", sql)
+                Exit Sub
+            End If
+            '--
+        
+            rsSumber.MoveFirst
+            c = 1
+            Do While rsSumber.EOF = False
+                Call info(2, "Fetch divisi. Run " & c & "/" & jRec, sb1)
+                
+                rsTujuan.AddNew
+                For a = 0 To rsSumber.Fields.Count - 1
+                    
+                    'If a = 25 Then
+                    '    MsgBox "a"
+                    'End If
+                    
+                    If rsSumber.Fields(a).Type = adBigInt Or rsSumber.Fields(a).Type = adCurrency Or _
+                        rsSumber.Fields(a).Type = adDecimal Or rsSumber.Fields(a).Type = adDouble Or _
+                        rsSumber.Fields(a).Type = adInteger Or rsSumber.Fields(a).Type = adNumeric Then
+                        
+                        rsTujuan.Fields(a).Value = cek_null(rsSumber.Fields(a).Value, "0")
+                    Else
+                        rsTujuan.Fields(a).Value = cek_null(rsSumber.Fields(a).Value)
+                    End If
+                    
+                Next
+                rsTujuan.Update
+                
+                rsSumber.MoveNext
+                c = c + 1
+            Loop
+            Set rsSumber = Nothing
+        End If
+    End If
+    
+End Sub
+
+Sub fetch_Bukti_Potong(Tahun As String, ByRef rs As ADODB.Recordset, ByRef cnnTemp As ADODB.connection, _
+                        ByRef sb1 As StatusBar, ByRef adaError As Boolean)
+    Dim id1 As String
+    Dim rsKPP As ADODB.Recordset
+    Dim sql As String
+    Dim jRec As Long, c As Long
+    
+    Dim t As String, t2 As String
+    Dim penghasilanKenaPajakSetahun As Currency
+    Dim npwp_kpp As String
+    
+    Dim alamat As String, bulan_akhir As String, bulan_awal As String, Jabatan As String
+    Dim Jenis_Kelamin As String, nama As String, Nama_Pemotong As String, nama_ttd As String
+    Dim NIK As String, no_1 As Currency, no_10 As Currency, no_11 As Currency, no_12 As Currency
+    Dim no_13 As Currency, no_14 As Currency, no_15 As Currency, no_16 As Currency, no_17 As Currency
+    Dim no_18 As Currency, no_19 As Currency, no_2 As Currency, no_20 As Currency, no_3 As Currency
+    Dim no_4 As Currency, no_5 As Currency, no_6 As Currency, no_7 As Currency, no_8 As Currency
+    Dim no_9 As Currency, nomor As String, npwp As String
+    Dim npwp_ttd As String, Ptkp As String
+    
+    Dim no_13s As Currency, no_19s As Currency, jmlBulan As Integer
+    Dim kdCENTER As String
+    
+    
+    'On Error GoTo er1
+    
+    adaError = False
+    
+    
+    '-----
+    'pph21tahunan2
+        '0  No1, Bulan, Tahun, " & _
+        '3  NPWP_KPP, kdPROYEK, kdCENTER, " & _
+        '6  Nama, NPWP, NIK, " & _
+        '9  Alamat, Jabatan, P_L, " & _
+        '12 PTKP, Gaji, Tnj_PPh, " & _
+        '15 Tunjangan_Lain, JHT_JPN, Bruto, " & _
+        '18 Insentif, THR, Lainnya, " & _
+        '21 Pensiun_Potongan_Lain, id1, tglupdate
+        '24 tunjangan_jab
+    '----------
+    npwp = cek_null(rs(7))
+    nama = cek_null(rs(6))
+    NIK = cek_null(rs(8))
+    
+    'id1 = cek_null(rs(22))
+    id1 = tbPph21Tahunan2_get_ID1(npwp, NIK, nama, Tahun)
+    
+    '-- cek di temporary, jika data sudah ada, exit
+    sql = "select count(*) from buktipotong where npwp = '" & CekPetik(npwp) & _
+            "' and nama = '" & CekPetik(nama) & "' and NIK = '" & CekPetik(NIK) & "' "
+    t = cari_data1(cnnTemp, sql, True)
+    If CInt(t) > 0 Then Exit Sub
+    '----
+    
+    sql = "select NPWP_KPP from v_dis_npwpkpp where NPWP = '" & Trim(npwp) & _
+            "' and NIK = '" & Trim(NIK) & "' and Nama = '" & Trim(nama) & "' and Tahun = '" & _
+            Trim(Tahun) & "' "
+    
+    If OpenRecordSet(cnn, rsKPP, sql, adOpenStatic, adLockReadOnly, adUseClient) <> 0 Then
+        sql = InputBox("error sql", "", sql)
+        Exit Sub
+    End If
+    
+    jRec = RecordCount(rsKPP)
+    If jRec <= 0 Then
+        MsgBox "tidak ada data KPP", vbInformation
+        Exit Sub
+    Else
+        'Call pesan2("data di " & jRec & " KPP", 1)
+    End If
+    
+    If jRec > 1 Then
+        c = 1
+    End If
+    
+    rsKPP.MoveFirst
+    c = 1
+    no_13s = 0
+    no_19s = 0
+    Do While rsKPP.EOF = False
+        Call info(2, "Load data. Run " & c & "/" & jRec, sb1)
+        npwp_kpp = cek_null(rsKPP(0))
+            
+        '---
+        
+        Call tbPph21Tahunan2_getData_byId2(id1, nomor, alamat, Jenis_Kelamin, Ptkp)
+        
+        'nomor = tbPph21Tahunan2_getData_byId(id1, "no_urut_buktipotong")
+        bulan_awal = adddigit(CLng(tbPph21Tahunan2_getBulanAwal(npwp, NIK, nama, Tahun, npwp_kpp)), 2)
+        bulan_akhir = adddigit(tbPph21Tahunan2_getBulanAkhir(npwp, NIK, nama, Tahun, npwp_kpp), 2)
+        'update bulan akhir
+        nomor = Left(nomor, 4) & bulan_akhir & Right(nomor, 8)
+        jmlBulan = (CInt(bulan_akhir) - CInt(bulan_awal)) + 1
+    
+        'npwp_kpp = ok
+        Nama_Pemotong = UCase(tbMKpp_get("nama", npwp_kpp))
+        'npwp = OK
+        'NIK = ok
+        nama = UCase(nama)
+        'alamat = Trim(Left(UCase(tbPph21Tahunan2_getData_byId(id1, "Alamat")), 50))
+        alamat = Trim(Left(alamat, 50))
+    
+        'Jenis_Kelamin = tbPph21Tahunan2_getData_byId(id1, "P_L")
+        'PTKP = tbPph21Tahunan2_getData_byId(id1, "PTKP")
+    
+        Jabatan = tbPph21Tahunan2_getJabatan(npwp, NIK, nama, Tahun)
+    
+        'totalbruto = sum(Gaji + Tnj_PPh + JHT_JPN + Tunjangan_Lain + Insentif)
+        Call tbPph21Tahunan2_getTotal2(npwp, NIK, nama, Tahun, npwp_kpp, no_1, no_2, no_3, no_5, no_7 _
+                                        , no_10)
+        
+        'no_1 = cek_Money(tbPph21Tahunan2_getTotal("Gaji", npwp, NIK, nama, Tahun, npwp_kpp))
+        'no_2 = cek_Money(tbPph21Tahunan2_getTotal("Tnj_PPh", npwp, NIK, nama, Tahun, npwp_kpp))
+        'no_3 = cek_Money(tbPph21Tahunan2_getTotal("Tunjangan_Lain", npwp, NIK, nama, Tahun, npwp_kpp))
+        no_4 = 0
+        'no_5 = cek_Money(tbPph21Tahunan2_getTotal("JHT_JPN", npwp, NIK, nama, Tahun, npwp_kpp))
+        no_6 = 0
+        'no_7 = cek_Money(tbPph21Tahunan2_getTotal("Insentif + THR + Lainnya", npwp, NIK, nama, Tahun, npwp_kpp))
+        no_8 = no_1 + no_2 + no_3 + no_4 + no_5 + no_6 + no_7
+            
+        no_9 = cek_Money(tbPph21Tahunan2_getTotalBiayaJabatan(npwp, NIK, nama, Tahun, npwp_kpp))
+        'no_10 = cek_Money(tbPph21Tahunan2_getTotal("Pensiun_Potongan_Lain", npwp, NIK, nama, Tahun, npwp_kpp))
+        no_11 = no_9 + no_10
+        no_12 = no_8 - no_11
+        no_13 = no_13s
+        
+        
+        
+        'jRec = jumlah KPP
+        If jRec > 1 Then
+            If c = 1 Then
+                no_14 = Round(no_12 * (12 / jmlBulan), 0)
+            Else
+                no_14 = no_12 + no_13
+            End If
+        Else
+            no_14 = no_12
+        End If
+        
+        If c = 1 Then
+            no_13s = no_12
+        Else
+            no_13s = no_14
+        End If
+        
+        no_15 = tbM_Ptkp_getNilai(Ptkp)
+            
+        If no_14 - no_15 > 0 Then
+            no_16 = NearestThousand(no_14 - no_15)
+        Else
+            no_16 = 0
+        End If
+    
+        penghasilanKenaPajakSetahun = no_16
+    
+        no_17 = cek_Money(get_pph21Setahun(penghasilanKenaPajakSetahun))
+        If Left(cleanNpwp(npwp), 8) = "00000000" Then
+            no_17 = no_17 * 1.2
+        End If
+        
+        no_18 = no_19s
+        
+        If jRec > 1 Then
+            If c = 1 Then
+                no_19 = Round((no_17 / 12) * jmlBulan, 0)
+            Else
+                no_19 = no_17 - no_18
+            End If
+        Else
+            no_19 = no_17 - no_18
+        End If
+        If no_19 <= 0 Then no_19 = 0
+        
+        no_19s = no_19
+        
+        no_20 = no_19
+        
+        npwp_ttd = "09.321.683.6411000"
+        nama_ttd = "FARID FACHRUR RAZI"
+        kdCENTER = tbPph21Tahunan2_get_kdCENTER(npwp, NIK, nama, Tahun, npwp_kpp, bulan_akhir)
+        
+        '--insert ke dbtemp
+        '- jika di panggil melalui form rekap, insert ke db utama
+        sql = "insert into buktipotong (nomor, tahun, bulan_awal, " & _
+                "bulan_akhir, npwp_pemotong, nama_pemotong, " & _
+                "npwp, NIK, Nama, " & _
+                "Alamat, Jenis_kelamin, ptkp, " & _
+                "jabatan, no_1, no_2, " & _
+                "no_3, no_4, no_5, " & _
+                "no_6, no_7, no_8, " & _
+                "no_9, no_10, no_11, " & _
+                "no_12, no_13, no_14, " & _
+                "no_15, no_16, no_17, " & _
+                "no_18, no_19, no_20, " & _
+                "npwp_ttd, nama_ttd, kdCENTER) values ('" & _
+                Trim(nomor) & "','" & Trim(Tahun) & "','" & Trim(bulan_awal) & "','" & _
+                Trim(bulan_akhir) & "','" & Trim(npwp_kpp) & "','" & Trim(Nama_Pemotong) & "','" & _
+                Trim(npwp) & "','" & Trim(NIK) & "','" & Trim(nama) & "','" & _
+                Trim(alamat) & "','" & Trim(Jenis_Kelamin) & "','" & Trim(Ptkp) & "','" & _
+                Trim(Jabatan) & "','" & Trim(no_1) & "','" & Trim(no_2) & "','" & _
+                Trim(no_3) & "','" & Trim(no_4) & "','" & Trim(no_5) & "','" & _
+                Trim(no_6) & "','" & Trim(no_7) & "','" & Trim(no_8) & "','" & _
+                Trim(no_9) & "','" & Trim(no_10) & "','" & Trim(no_11) & "','" & _
+                Trim(no_12) & "','" & Trim(no_13) & "','" & Trim(no_14) & "','" & _
+                Trim(no_15) & "','" & Trim(no_16) & "','" & Trim(no_17) & "','" & _
+                Trim(no_18) & "','" & Trim(no_19) & "','" & Trim(no_20) & "','" & _
+                Trim(npwp_ttd) & "','" & Trim(nama_ttd) & "', '" & kdCENTER & "')"
+        If ExecSQL1(cnnTemp, sql) <> 0 Then
+            sql = InputBox("sql error", "", sql)
+            adaError = True
+            Exit Do
+        End If
+        '---
+        rsKPP.MoveNext
+        c = c + 1
+    Loop
+    Set rsKPP = Nothing
+    
+    Exit Sub
+er1:
+    MsgBox Err.Description, vbCritical
+End Sub
+
